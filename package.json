@@ -1,40 +1,40 @@
 {
-	"name": "storytime-bot",
-	"version": "0.1.0",
-	"private": true,
-	"type": "module",
-	"scripts": {
-		"dev": "next dev --turbopack",
-		"build": "next build",
-		"start": "next start",
-		"lint": "next lint"
-	},
-	"dependencies": {
-		"@ai-sdk/gateway": "^1.0.4",
-		"@ai-sdk/openai": "^2.0.8",
-		"@slack/web-api": "^7.9.3",
-		"@vercel/functions": "^2.2.8",
-		"@vercel/otel": "^1.13.0",
-		"@vercel/workflow-core": "0.0.1-alpha.9",
-		"@vercel/workflow-next": "0.0.1-alpha.16",
-		"ai": "^5.0.9",
-		"dotenv": "^17.2.1",
-		"next": "15.4.6",
-		"react": "19.1.0",
-		"react-dom": "19.1.0",
-		"terminal-image": "^3.1.1",
-		"zod": "^4.0.17"
-	},
-	"devDependencies": {
-		"@eslint/eslintrc": "^3",
-		"@tailwindcss/postcss": "^4",
-		"@types/node": "^20",
-		"@types/react": "^19",
-		"@types/react-dom": "^19",
-		"eslint": "^9",
-		"eslint-config-next": "15.4.6",
-		"tailwindcss": "^4",
-		"typescript": "^5"
-	},
-	"packageManager": "pnpm@9.15.4+sha512.b2dc20e2fc72b3e18848459b37359a32064663e5627a51e4c74b2c29dd8e8e0491483c3abb40789cfd578bf362fb6ba8261b05f0387d76792ed6e23ea3b1b6a0"
+  "name": "storytime-bot",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@ai-sdk/gateway": "^1.0.4",
+    "@ai-sdk/openai": "^2.0.8",
+    "@slack/web-api": "^7.9.3",
+    "@vercel/functions": "^2.2.8",
+    "@vercel/otel": "^1.13.0",
+    "@vercel/workflow-core": "https://workflow-preview-packages-4p80m99hp.labs.vercel.dev/vercel-workflow-core.tgz",
+    "@vercel/workflow-next": "https://workflow-preview-packages-4p80m99hp.labs.vercel.dev/vercel-workflow-next.tgz",
+    "ai": "^5.0.9",
+    "dotenv": "^17.2.1",
+    "next": "15.4.6",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "terminal-image": "^3.1.1",
+    "zod": "^4.0.17"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "15.4.6",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  },
+  "packageManager": "pnpm@9.15.4+sha512.b2dc20e2fc72b3e18848459b37359a32064663e5627a51e4c74b2c29dd8e8e0491483c3abb40789cfd578bf362fb6ba8261b05f0387d76792ed6e23ea3b1b6a0"
 }

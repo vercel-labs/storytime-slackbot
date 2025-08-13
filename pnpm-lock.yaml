@@ -24,11 +24,11 @@ importers:
         specifier: ^1.13.0
         version: 1.13.0(@opentelemetry/api-logs@0.57.2)(@opentelemetry/api@1.9.0)(@opentelemetry/instrumentation@0.57.2(@opentelemetry/api@1.9.0))(@opentelemetry/resources@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-logs@0.57.2(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-metrics@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.30.1(@opentelemetry/api@1.9.0))
       '@vercel/workflow-core':
-        specifier: 0.0.1-alpha.9
-        version: 0.0.1-alpha.9(@aws-sdk/client-sts@3.864.0)(@opentelemetry/api@1.9.0)
+        specifier: https://workflow-preview-packages-4p80m99hp.labs.vercel.dev/vercel-workflow-core.tgz
+        version: https://workflow-preview-packages-4p80m99hp.labs.vercel.dev/vercel-workflow-core.tgz(@aws-sdk/client-sts@3.864.0)(@opentelemetry/api@1.9.0)
       '@vercel/workflow-next':
-        specifier: 0.0.1-alpha.16
-        version: 0.0.1-alpha.16(@aws-sdk/client-sts@3.864.0)(@opentelemetry/api@1.9.0)(next@15.4.6(@opentelemetry/api@1.9.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))
+        specifier: https://workflow-preview-packages-4p80m99hp.labs.vercel.dev/vercel-workflow-next.tgz
+        version: https://workflow-preview-packages-4p80m99hp.labs.vercel.dev/vercel-workflow-next.tgz(@aws-sdk/client-sts@3.864.0)(@opentelemetry/api@1.9.0)(next@15.4.6(@opentelemetry/api@1.9.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))
       ai:
         specifier: ^5.0.9
         version: 5.0.9(zod@4.0.17)
@@ -1585,34 +1585,40 @@ packages:
       '@opentelemetry/sdk-metrics': '>=1.19.0 <2.0.0'
       '@opentelemetry/sdk-trace-base': '>=1.19.0 <2.0.0'
 
-  '@vercel/queue@0.0.0-alpha.12':
-    resolution: {integrity: sha512-qU3O9VEkC+TQ5f2ZNnFY/888HffArI+83heCkCQZrSZTQ6+iwjM0eMjDke//Fn7jcsxbooMfuoHZiZshfYAUqQ==}
-    engines: {node: '>=22.0.0'}
+  '@vercel/queue@0.0.0-alpha.20':
+    resolution: {integrity: sha512-FCiOIAO/gwuAzlaFDd3Q/PCKxB4GiIeK4JJvjAdWNiWftC3pnbLZ2gL/kHLDeQbm2rHOyLx8cBiQX4jgBLZE3A==}
+    engines: {node: '>=20.0.0'}
+    hasBin: true
 
-  '@vercel/swc-plugin-workflow@0.0.1-alpha.3':
-    resolution: {integrity: sha512-ceSNc3egYiu4vgqgMFHr9y9iKSdviigrUjVek6sIUszW1SoQCxQdjpmYLc/Y8BuLoGI6xurZVX6K2jPXl2jfig==}
+  '@vercel/swc-plugin-workflow@https://workflow-preview-packages-4p80m99hp.labs.vercel.dev/vercel-swc-plugin-workflow.tgz':
+    resolution: {tarball: https://workflow-preview-packages-4p80m99hp.labs.vercel.dev/vercel-swc-plugin-workflow.tgz}
+    version: 0.0.1-alpha.3-2c4ade9
     peerDependencies:
       '@swc/core': 1.11.24
 
-  '@vercel/workflow-cli@0.0.1-alpha.15':
-    resolution: {integrity: sha512-nfK4zPbVOQmetXeYF6DRo//ZNGnsf+JZaAVmn4FCZEiQj9X6OYyhbkd8JpGL8jA6sfLlrmg9qoYcX+VRoJjTYQ==}
+  '@vercel/workflow-cli@https://workflow-preview-packages-4p80m99hp.labs.vercel.dev/vercel-workflow-cli.tgz':
+    resolution: {tarball: https://workflow-preview-packages-4p80m99hp.labs.vercel.dev/vercel-workflow-cli.tgz}
+    version: 0.0.1-alpha.15-2c4ade9
     hasBin: true
 
-  '@vercel/workflow-core@0.0.1-alpha.9':
-    resolution: {integrity: sha512-MMx2A2lemavuh8aqcTkz7tS4CxPB6iwJM6qMyAz+zQxV86HCBbhMmEnJTJ/j2ib8Pj/TphIQ3YfeisNakBe9bw==}
+  '@vercel/workflow-core@https://workflow-preview-packages-4p80m99hp.labs.vercel.dev/vercel-workflow-core.tgz':
+    resolution: {tarball: https://workflow-preview-packages-4p80m99hp.labs.vercel.dev/vercel-workflow-core.tgz}
+    version: 0.0.1-alpha.9-2c4ade9
     peerDependencies:
       '@opentelemetry/api': '1'
     peerDependenciesMeta:
       '@opentelemetry/api':
         optional: true
 
-  '@vercel/workflow-next@0.0.1-alpha.16':
-    resolution: {integrity: sha512-ycJufg+sxOhq5/Tsy+A/ns2ZztaIQZGScM9gseoFCpdDJ8BDQoMVlaDU5y6AVyx0fUKbMJx7MgJOnu/CYPjsDQ==}
+  '@vercel/workflow-next@https://workflow-preview-packages-4p80m99hp.labs.vercel.dev/vercel-workflow-next.tgz':
+    resolution: {tarball: https://workflow-preview-packages-4p80m99hp.labs.vercel.dev/vercel-workflow-next.tgz}
+    version: 0.0.1-alpha.16-2c4ade9
     peerDependencies:
       next: '>13'
 
-  '@vercel/workflow-vm@0.0.1-alpha.3':
-    resolution: {integrity: sha512-21/ldxtVE94obksGWgCMoKZdE+fqVBUzafMtYsAqr6qGGnjHTRdANnVq5Ycc5TXRubA8glZp4A+Vt3NaG5ZbQA==}
+  '@vercel/workflow-vm@https://workflow-preview-packages-4p80m99hp.labs.vercel.dev/vercel-workflow-vm.tgz':
+    resolution: {tarball: https://workflow-preview-packages-4p80m99hp.labs.vercel.dev/vercel-workflow-vm.tgz}
+    version: 0.0.1-alpha.3-2c4ade9
 
   '@xmldom/xmldom@0.8.10':
     resolution: {integrity: sha512-2WALfTl4xo2SkGCYRt6rDTFfk9R1czmBvUQy12gK2KuRKIpWEhcbbzy8EZXtz/jkRqHX8bFEc6FC1HjX4TUWYw==}
@@ -2789,6 +2795,10 @@ packages:
 
   mixpart@0.0.4:
     resolution: {integrity: sha512-RAoaOSXnMLrfUfmFbNynRYjeMru/bhgAYRy/GQVI8gmRq7vm9V9c2gGVYnYoQ008X6YTmRIu5b0397U7vb0bIA==}
+    engines: {node: '>=22.0.0'}
+
+  mixpart@0.0.5-alpha.0:
+    resolution: {integrity: sha512-XS3bfxqdHsxqLoK0DnkGiM++KZGhXFj8KrzfNND/4d0DDBkbVdmlEajIAOQ+2+tHVw2zFI1ng8SnJSOfVZg0HA==}
     engines: {node: '>=22.0.0'}
 
   mkdirp@0.5.6:
@@ -5342,21 +5352,21 @@ snapshots:
       '@opentelemetry/sdk-metrics': 1.30.1(@opentelemetry/api@1.9.0)
       '@opentelemetry/sdk-trace-base': 1.30.1(@opentelemetry/api@1.9.0)
 
-  '@vercel/queue@0.0.0-alpha.12':
+  '@vercel/queue@0.0.0-alpha.20':
     dependencies:
-      mixpart: 0.0.4
+      mixpart: 0.0.5-alpha.0
 
-  '@vercel/swc-plugin-workflow@0.0.1-alpha.3(@swc/core@1.11.24)':
+  '@vercel/swc-plugin-workflow@https://workflow-preview-packages-4p80m99hp.labs.vercel.dev/vercel-swc-plugin-workflow.tgz(@swc/core@1.11.24)':
     dependencies:
       '@swc/core': 1.11.24
 
-  '@vercel/workflow-cli@0.0.1-alpha.15(@aws-sdk/client-sts@3.864.0)(@opentelemetry/api@1.9.0)':
+  '@vercel/workflow-cli@https://workflow-preview-packages-4p80m99hp.labs.vercel.dev/vercel-workflow-cli.tgz(@aws-sdk/client-sts@3.864.0)(@opentelemetry/api@1.9.0)':
     dependencies:
       '@oclif/core': 4.5.2
       '@oclif/plugin-help': 6.2.32
       '@swc/core': 1.11.24
-      '@vercel/swc-plugin-workflow': 0.0.1-alpha.3(@swc/core@1.11.24)
-      '@vercel/workflow-core': 0.0.1-alpha.9(@aws-sdk/client-sts@3.864.0)(@opentelemetry/api@1.9.0)
+      '@vercel/swc-plugin-workflow': https://workflow-preview-packages-4p80m99hp.labs.vercel.dev/vercel-swc-plugin-workflow.tgz(@swc/core@1.11.24)
+      '@vercel/workflow-core': https://workflow-preview-packages-4p80m99hp.labs.vercel.dev/vercel-workflow-core.tgz(@aws-sdk/client-sts@3.864.0)(@opentelemetry/api@1.9.0)
       chokidar: 4.0.3
       esbuild: 0.25.8
       mixpart: 0.0.4
@@ -5366,14 +5376,14 @@ snapshots:
       - '@opentelemetry/api'
       - '@swc/helpers'
 
-  '@vercel/workflow-core@0.0.1-alpha.9(@aws-sdk/client-sts@3.864.0)(@opentelemetry/api@1.9.0)':
+  '@vercel/workflow-core@https://workflow-preview-packages-4p80m99hp.labs.vercel.dev/vercel-workflow-core.tgz(@aws-sdk/client-sts@3.864.0)(@opentelemetry/api@1.9.0)':
     dependencies:
       '@aws-sdk/credential-provider-web-identity': 3.609.0(@aws-sdk/client-sts@3.864.0)
       '@types/json-schema': 7.0.15
       '@types/ms': 2.1.0
       '@vercel/functions': 2.2.8(@aws-sdk/credential-provider-web-identity@3.609.0(@aws-sdk/client-sts@3.864.0))
-      '@vercel/queue': 0.0.0-alpha.12
-      '@vercel/workflow-vm': 0.0.1-alpha.3
+      '@vercel/queue': 0.0.0-alpha.20
+      '@vercel/workflow-vm': https://workflow-preview-packages-4p80m99hp.labs.vercel.dev/vercel-workflow-vm.tgz
       ajv: 8.17.1
       devalue: 5.1.1
       jsonwebtoken: 9.0.2
@@ -5384,19 +5394,19 @@ snapshots:
     transitivePeerDependencies:
       - '@aws-sdk/client-sts'
 
-  '@vercel/workflow-next@0.0.1-alpha.16(@aws-sdk/client-sts@3.864.0)(@opentelemetry/api@1.9.0)(next@15.4.6(@opentelemetry/api@1.9.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))':
+  '@vercel/workflow-next@https://workflow-preview-packages-4p80m99hp.labs.vercel.dev/vercel-workflow-next.tgz(@aws-sdk/client-sts@3.864.0)(@opentelemetry/api@1.9.0)(next@15.4.6(@opentelemetry/api@1.9.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))':
     dependencies:
       '@swc/core': 1.11.24
-      '@vercel/swc-plugin-workflow': 0.0.1-alpha.3(@swc/core@1.11.24)
-      '@vercel/workflow-cli': 0.0.1-alpha.15(@aws-sdk/client-sts@3.864.0)(@opentelemetry/api@1.9.0)
-      '@vercel/workflow-core': 0.0.1-alpha.9(@aws-sdk/client-sts@3.864.0)(@opentelemetry/api@1.9.0)
+      '@vercel/swc-plugin-workflow': https://workflow-preview-packages-4p80m99hp.labs.vercel.dev/vercel-swc-plugin-workflow.tgz(@swc/core@1.11.24)
+      '@vercel/workflow-cli': https://workflow-preview-packages-4p80m99hp.labs.vercel.dev/vercel-workflow-cli.tgz(@aws-sdk/client-sts@3.864.0)(@opentelemetry/api@1.9.0)
+      '@vercel/workflow-core': https://workflow-preview-packages-4p80m99hp.labs.vercel.dev/vercel-workflow-core.tgz(@aws-sdk/client-sts@3.864.0)(@opentelemetry/api@1.9.0)
       next: 15.4.6(@opentelemetry/api@1.9.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
     transitivePeerDependencies:
       - '@aws-sdk/client-sts'
       - '@opentelemetry/api'
       - '@swc/helpers'
 
-  '@vercel/workflow-vm@0.0.1-alpha.3':
+  '@vercel/workflow-vm@https://workflow-preview-packages-4p80m99hp.labs.vercel.dev/vercel-workflow-vm.tgz':
     dependencies:
       seedrandom: 3.0.5
 
@@ -6768,6 +6778,8 @@ snapshots:
       minipass: 7.1.2
 
   mixpart@0.0.4: {}
+
+  mixpart@0.0.5-alpha.0: {}
 
   mkdirp@0.5.6:
     dependencies:
