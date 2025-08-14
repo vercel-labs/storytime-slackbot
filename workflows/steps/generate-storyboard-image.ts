@@ -21,6 +21,14 @@ export async function generateStoryboardImage(
       { kind: SpanKind.CLIENT },
       async (s) => {
         span = s;
+        span.setAttributes({
+          "span.startTime": Date.now(),
+          "span.startHrtime": process.hrtime(),
+        });
+        console.log({
+          "span.startTime": Date.now(),
+          "span.startHrtime": process.hrtime(),
+        });
         console.time("inside spanned");
         const resp = await generateImage({
           model: openai.image("gpt-image-1"),
@@ -34,6 +42,14 @@ export async function generateStoryboardImage(
     )
     .finally(() => {
       console.log("ending span");
+      span.setAttributes({
+        "span.endTime": Date.now(),
+        "span.endHrtime": process.hrtime(),
+      });
+      console.log({
+        "span.endTime": Date.now(),
+        "span.endHrtime": process.hrtime(),
+      });
       span.end();
     });
   console.timeEnd("Generating storyboard image");
