@@ -18,13 +18,15 @@ export async function generateStoryboardImage(
     "generateImage",
     { kind: SpanKind.CLIENT },
     async () => {
+      console.time("inside spanned");
       const resp = await generateImage({
         model: openai.image("gpt-image-1"),
         n: 1,
         prompt: IMAGE_GEN_PROMPT(finalStory),
       });
-
-      return Buffer.from(resp.images[0].uint8Array);
+      const b = Buffer.from(resp.images[0].uint8Array);
+      console.timeEnd("inside spanned");
+      return b;
     },
   );
   console.timeEnd("Generating storyboard image");
