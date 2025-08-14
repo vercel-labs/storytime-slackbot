@@ -24,7 +24,7 @@ export async function generateStoryboardImage(
         prompt: IMAGE_GEN_PROMPT(finalStory),
       });
 
-      return Buffer.from(resp.image.uint8Array);
+      return Buffer.from(resp.images[0].uint8Array);
     },
   );
   console.timeEnd("Generating storyboard image");
