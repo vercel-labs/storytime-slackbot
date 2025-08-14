@@ -35,12 +35,14 @@ export function spanned<T>(
     } finally {
       const timeDiff = process.hrtime.bigint() - startHrtime;
       const timeDiffInMilliseconds = Number(timeDiff) / 1e6;
-      span.setAttributes({
+      const attributes = {
         "span.endHrtime": process.hrtime(),
         "span.endTime": Date.now(),
         "span.duration": timeDiffInMilliseconds,
         "span.calculatedEndTime": startTime + timeDiffInMilliseconds,
-      });
+      };
+      span.setAttributes(attributes);
+      console.log(name, attributes);
       span.end(startTime + timeDiffInMilliseconds);
     }
   });
