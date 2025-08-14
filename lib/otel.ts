@@ -5,7 +5,7 @@ import {
   trace,
 } from "@opentelemetry/api";
 
-const tracer = trace.getTracer("storytime");
+export const tracer = trace.getTracer("storytime");
 
 export function spanned<T>(
   name: string,

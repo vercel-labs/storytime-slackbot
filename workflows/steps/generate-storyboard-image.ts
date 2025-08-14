@@ -3,8 +3,8 @@ import { FatalError } from "@vercel/workflow-core";
 import { experimental_generateImage as generateImage } from "ai";
 import { IMAGE_GEN_PROMPT } from "@/lib/prompt";
 import { slack } from "@/lib/slack";
-import { SpanKind } from "@opentelemetry/api";
-import { spanned } from "@/lib/otel";
+import { type Span, SpanKind } from "@opentelemetry/api";
+import { spanned, tracer } from "@/lib/otel";
 
 export async function generateStoryboardImage(
   channelId: string,
@@ -14,21 +14,28 @@ export async function generateStoryboardImage(
   "use step";
 
   console.time("Generating storyboard image");
-  const file = await spanned(
-    "generateStoryboard.generateImage",
-    { kind: SpanKind.CLIENT },
-    async () => {
-      console.time("inside spanned");
-      const resp = await generateImage({
-        model: openai.image("gpt-image-1"),
-        n: 1,
-        prompt: IMAGE_GEN_PROMPT(finalStory),
-      });
-      const b = Buffer.from(resp.images[0].uint8Array);
-      console.timeEnd("inside spanned");
-      return b;
-    },
-  );
+  let span: Span;
+  const file = await tracer
+    .startActiveSpan(
+      "generateStoryboardImage",
+      { kind: SpanKind.CLIENT },
+      async (s) => {
+        span = s;
+        console.time("inside spanned");
+        const resp = await generateImage({
+          model: openai.image("gpt-image-1"),
+          n: 1,
+          prompt: IMAGE_GEN_PROMPT(finalStory),
+        });
+        const b = Buffer.from(resp.images[0].uint8Array);
+        console.timeEnd("inside spanned");
+        return b;
+      },
+    )
+    .finally(() => {
+      console.log("ending span");
+      span.end();
+    });
   console.timeEnd("Generating storyboard image");
 
   console.time("Uploading image to Slack");
