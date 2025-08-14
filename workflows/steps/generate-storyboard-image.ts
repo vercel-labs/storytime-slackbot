@@ -14,12 +14,18 @@ export async function generateStoryboardImage(
   "use step";
 
   console.time("Generating storyboard image");
-  const image = await spanned("generateImage", { kind: SpanKind.CLIENT }, () =>
-    generateImage({
-      model: openai.image("gpt-image-1"),
-      n: 1,
-      prompt: IMAGE_GEN_PROMPT(finalStory),
-    }),
+  const file = await spanned(
+    "generateImage",
+    { kind: SpanKind.CLIENT },
+    async () => {
+      const resp = await generateImage({
+        model: openai.image("gpt-image-1"),
+        n: 1,
+        prompt: IMAGE_GEN_PROMPT(finalStory),
+      });
+
+      return Buffer.from(resp.image.uint8Array);
+    },
   );
   console.timeEnd("Generating storyboard image");
 
@@ -28,7 +34,7 @@ export async function generateStoryboardImage(
     slack.files.uploadV2({
       channel_id: channelId,
       thread_ts: threadTs,
-      file: Buffer.from(image.images[0].uint8Array),
+      file,
       filename: "storyboard.png",
       title: "Storyboard",
     }),
