@@ -42,8 +42,7 @@ export function spanned<T>(
         "span.calculatedEndTime": startTime + timeDiffInMilliseconds,
       };
       span.setAttributes(attributes);
-      console.log(name, attributes);
-      span.end(startTime + timeDiffInMilliseconds);
+      span.end();
     }
   });
 }
