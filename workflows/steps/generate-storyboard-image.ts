@@ -15,7 +15,7 @@ export async function generateStoryboardImage(
 
   console.time("Generating storyboard image");
   const file = await spanned(
-    "generateImage",
+    "generateStoryboard.generateImage",
     { kind: SpanKind.CLIENT },
     async () => {
       console.time("inside spanned");
