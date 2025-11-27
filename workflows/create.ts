@@ -55,7 +55,7 @@ export async function storytime(slashCommand: URLSearchParams) {
 		// Create the initial top-level message in the channel with a placeholder
 		postSlackMessage({
 			channel: channelId,
-			text: `${introText}\n\n> _Generating introduction…_ :thinking-hard:`,
+			text: `${introText}\n\n> _Generating introduction…_ :thinking_face:`,
 		}),
 		// Ask the LLM to initiate the story
 		generateStoryPiece(messages, model),
@@ -103,7 +103,7 @@ export async function storytime(slashCommand: URLSearchParams) {
 			addReactionToMessage({
 				channel: channelId,
 				timestamp: data.ts,
-				name: "thinking-hard",
+				name: "thinking_face",
 			}),
 		]);
 
@@ -121,7 +121,7 @@ export async function storytime(slashCommand: URLSearchParams) {
 			removeReactionFromMessage({
 				channel: channelId,
 				timestamp: data.ts,
-				name: "thinking-hard",
+				name: "thinking_face",
 			}),
 		]);
 
@@ -142,7 +142,7 @@ export async function storytime(slashCommand: URLSearchParams) {
 	const [{ ts: finalTs }, fileId] = await Promise.all([
 		postSlackMessage({
 			channel: channelId,
-			text: `${finalText}\n\n_Generating storyboard image…_ :thinking-hard:`,
+			text: `${finalText}\n\n_Generating storyboard image…_ :thinking_face:`,
 			thread_ts: ts,
 			reply_broadcast: true,
 		}),
