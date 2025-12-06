@@ -66,12 +66,11 @@ export async function tiktokPost(slashCommand: URLSearchParams) {
 		{ role: "system", content: TIKTOK_SYSTEM_PROMPT },
 		{
 			role: "user",
-			content: `Generate 3 TikTok post ideas about: "${topic}"
+			content: `Generate 2 TikTok post ideas about: "${topic}"
 
 Consider current trends and what performs well. Make them diverse:
 1. One educational/value post
 2. One relatable/entertainment post
-3. One storytelling/personal post
 
 For each post, include an imagePrompt field with a detailed description for generating a vertical 9:16 TikTok thumbnail/cover image.`,
 		},
