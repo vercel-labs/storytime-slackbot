@@ -1,5 +1,7 @@
 import { z } from "zod";
+import { storytimeToken, tiktokFeedbackToken } from "@/lib/hook-tokens";
 import { slackMessageHook } from "@/workflows/create";
+import { tiktokFeedbackHook } from "@/workflows/tiktok-post";
 
 const slackMessageSchema = z.object({
 	event: z.object({
@@ -31,17 +33,35 @@ export async function POST(req: Request) {
 
 	const parsedBody = slackMessageSchema.safeParse(body);
 	if (parsedBody.success) {
-		const { channel, thread_ts, bot_id } = parsedBody.data.event;
+		const { channel, thread_ts, text, ts, bot_id } = parsedBody.data.event;
 		if (bot_id) {
 			console.log(`Ignoring bot message`);
 		} else {
-			const token = `slack-message-webhook:${channel}:${thread_ts}`;
-			const hook = await slackMessageHook.resume(token, parsedBody.data.event);
-			if (hook) {
-				console.log(`Hook resumed for token: ${token} (${hook.runId})`);
-			} else {
-				console.log(`No hook found for token: ${token}`);
+			// Try storytime hook (catch errors - hook may not exist)
+			try {
+				const stToken = storytimeToken(channel, thread_ts);
+				const stHook = await slackMessageHook.resume(stToken, { text, ts });
+				if (stHook) {
+					console.log(`Storytime hook resumed: ${stToken} (${stHook.runId})`);
+					return new Response("OK");
+				}
+			} catch (e) {
+				// Hook not found, try next
 			}
+
+			// Try tiktokpost feedback hook
+			try {
+				const ttToken = tiktokFeedbackToken(channel, thread_ts);
+				const ttHook = await tiktokFeedbackHook.resume(ttToken, { text, ts });
+				if (ttHook) {
+					console.log(`TikTok hook resumed: ${ttToken} (${ttHook.runId})`);
+					return new Response("OK");
+				}
+			} catch (e) {
+				// Hook not found
+			}
+
+			console.log(`No hook found for channel:${channel} thread:${thread_ts}`);
 		}
 	}
 

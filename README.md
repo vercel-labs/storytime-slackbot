@@ -1,10 +1,24 @@
-# Storytime Slack Bot
+# Slack Productivity Bot
 
-An interactive AI-powered Slack bot that creates collaborative children's stories with your team. Users can start a story with a slash command, and the bot will generate an introduction based on random themes. 
+A multi-purpose Slack bot powered by Vercel Workflow for automating tasks, generating content, and fetching insights.
 
-Team members can then contribute to the story in a thread, with the AI helping to guide the narrative to completion and generating a beautiful storyboard image at the end.
+## Commands
 
-![Storyboard Example](./public/storyboard.png)
+| Command | Description | Example |
+|---------|-------------|---------|
+| `/tiktokpost` | Generate TikTok content ideas | `/tiktokpost AI productivity tools` |
+| `/insights` | Fetch PostHog metrics | `/insights last 7 days` |
+| `/job` | Run background jobs | `/job fetch-trends` |
+| `/wiki` | Query GitHub repo docs | `/wiki vercel/ai streaming` |
+| `/storytime` | Create collaborative stories | `/storytime` |
+
+## Available Jobs
+
+- `fetch-trends` - Scrape TikTok trends via Apify
+- `crawl-competitors` - Check competitor websites
+- `sync-github` - Sync GitHub issues/PRs
+- `generate-report` - Compile weekly metrics report
+- `build` - Trigger production build
 
 ## Getting Started
 
