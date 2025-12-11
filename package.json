@@ -10,12 +10,15 @@
 		"lint": "next lint"
 	},
 	"dependencies": {
+		"@langfuse/otel": "^4.4.9",
+		"@opentelemetry/sdk-trace-base": "^2.0.1",
+		"@opentelemetry/sdk-trace-node": "^2.2.0",
 		"@slack/web-api": "^7.9.3",
 		"@vercel/functions": "^2.2.8",
-		"@vercel/otel": "^1.13.0",
 		"ai": "^5.0.52",
 		"cloudinary": "^2.8.0",
 		"dotenv": "^17.2.1",
+		"langfuse": "^3.38.6",
 		"next": "16.0.7",
 		"react": "19.2.1",
 		"react-dom": "19.2.1",
