@@ -4,7 +4,8 @@ import { withWorkflow } from "workflow/next";
 const nextConfig: NextConfig = {
 	/* config options here */
 	experimental: {
-		serverMinification: false
+		serverMinification: false,
+		instrumentationHook: true,
 	}
 };
 
