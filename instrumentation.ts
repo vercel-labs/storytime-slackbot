@@ -8,6 +8,10 @@ export async function register() {
 	};
 
 	const langfuseSpanProcessor = new LangfuseSpanProcessor({
+		publicKey: process.env.LANGFUSE_PUBLIC_KEY,
+		secretKey: process.env.LANGFUSE_SECRET_KEY,
+		baseUrl: process.env.LANGFUSE_BASE_URL || "https://us.cloud.langfuse.com",
+		exportMode: "immediate", // Required for serverless
 		shouldExportSpan,
 	});
 
@@ -16,5 +20,6 @@ export async function register() {
 	});
 
 	tracerProvider.register();
-	console.log("Langfuse OTEL instrumentation registered");
+	console.log("Langfuse OTEL instrumentation registered with keys:",
+		process.env.LANGFUSE_PUBLIC_KEY ? "✓" : "✗");
 }
