@@ -5,7 +5,6 @@ const nextConfig: NextConfig = {
 	/* config options here */
 	experimental: {
 		serverMinification: false,
-		instrumentationHook: true,
 	}
 };
 
