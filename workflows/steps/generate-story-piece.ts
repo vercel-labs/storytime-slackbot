@@ -17,6 +17,19 @@ const StoryPieceSchema = z.object({
 export type StoryPiece = z.infer<typeof StoryPieceSchema>;
 
 /**
+ * Unescape JSON string escape sequences.
+ * Used consistently across all JSON parsing functions.
+ */
+function unescapeJsonString(str: string): string {
+	return str
+		.replace(/\\n/g, "\n")
+		.replace(/\\r/g, "\r")
+		.replace(/\\t/g, "\t")
+		.replace(/\\"/g, '"')
+		.replace(/\\\\/g, "\\");
+}
+
+/**
  * Generate a story piece using the LLM.
  * This is the original non-streaming version for backward compatibility.
  */
@@ -124,11 +137,16 @@ export async function generateStoryPieceWithStreaming(
 
 					// Flush buffer when it reaches threshold
 					if (buffer.length >= bufferSize) {
-						await slack.chat.appendStream({
+						const appendResult = await slack.chat.appendStream({
 							channel,
 							ts,
 							markdown_text: buffer,
 						});
+						if (!appendResult.ok) {
+							console.warn(
+								`Failed to append to stream: ${appendResult.error}`,
+							);
+						}
 						buffer = "";
 					}
 				}
@@ -137,11 +155,14 @@ export async function generateStoryPieceWithStreaming(
 
 		// Flush any remaining buffer
 		if (buffer.length > 0) {
-			await slack.chat.appendStream({
+			const appendResult = await slack.chat.appendStream({
 				channel,
 				ts,
 				markdown_text: buffer,
 			});
+			if (!appendResult.ok) {
+				console.warn(`Failed to append final buffer: ${appendResult.error}`);
+			}
 		}
 
 		console.timeEnd("Streaming story generation");
@@ -149,8 +170,13 @@ export async function generateStoryPieceWithStreaming(
 		// Get the final result by iterating through partialOutputStream
 		let result: StoryPiece | undefined;
 		for await (const partial of stream.experimental_partialOutputStream) {
-			// Keep the last complete partial as our result
-			if (partial && partial.done !== undefined && partial.story && partial.encouragement) {
+			// Use typeof checks to handle empty strings correctly
+			if (
+				partial &&
+				typeof partial.done === "boolean" &&
+				typeof partial.story === "string" &&
+				typeof partial.encouragement === "string"
+			) {
 				result = partial as StoryPiece;
 			}
 		}
@@ -161,10 +187,13 @@ export async function generateStoryPieceWithStreaming(
 		}
 
 		// Stop the stream to finalize the message
-		await slack.chat.stopStream({
+		const stopResult = await slack.chat.stopStream({
 			channel,
 			ts,
 		});
+		if (!stopResult.ok) {
+			console.warn(`Failed to stop stream: ${stopResult.error}`);
+		}
 
 		return { result, ts };
 	} catch (error) {
@@ -172,7 +201,7 @@ export async function generateStoryPieceWithStreaming(
 		try {
 			await slack.chat.stopStream({ channel, ts });
 		} catch {
-			// Ignore stop errors
+			// Ignore stop errors during cleanup
 		}
 		throw error;
 	}
@@ -186,12 +215,22 @@ function extractStoryFromPartialJson(text: string): string | null {
 	// Look for "story": " pattern and extract content after it
 	const storyMatch = text.match(/"story"\s*:\s*"((?:[^"\\]|\\.)*)(?:"|$)/);
 	if (storyMatch) {
-		// Unescape JSON string escapes
-		return storyMatch[1]
-			.replace(/\\n/g, "\n")
-			.replace(/\\"/g, '"')
-			.replace(/\\\\/g, "\\")
-			.replace(/\\t/g, "\t");
+		return unescapeJsonString(storyMatch[1]);
+	}
+	return null;
+}
+
+/**
+ * Extract a string field from partial JSON output.
+ */
+function extractStringFieldFromJson(
+	text: string,
+	fieldName: string,
+): string | null {
+	const regex = new RegExp(`"${fieldName}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"`);
+	const match = text.match(regex);
+	if (match) {
+		return unescapeJsonString(match[1]);
 	}
 	return null;
 }
@@ -206,14 +245,13 @@ function parseStoryPieceFromJson(text: string): StoryPiece {
 	} catch {
 		// If parsing fails, try to extract fields manually
 		const story = extractStoryFromPartialJson(text) || "";
-		const encouragementMatch = text.match(/"encouragement"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+		const encouragement =
+			extractStringFieldFromJson(text, "encouragement") || "Keep going!";
 		const doneMatch = text.match(/"done"\s*:\s*(true|false)/);
 
 		return {
 			story,
-			encouragement: encouragementMatch
-				? encouragementMatch[1].replace(/\\n/g, "\n").replace(/\\"/g, '"')
-				: "Keep going!",
+			encouragement,
 			done: doneMatch ? doneMatch[1] === "true" : false,
 		};
 	}
@@ -242,7 +280,14 @@ export async function generateStoryPieceWithProgress(
 ): Promise<StoryPiece> {
 	"use step";
 
-	const { messages, model, channel, messageTs, prefix = "", throttleMs = 500 } = options;
+	const {
+		messages,
+		model,
+		channel,
+		messageTs,
+		prefix = "",
+		throttleMs = 500,
+	} = options;
 
 	console.log("Starting story generation with progress updates...");
 
@@ -269,15 +314,22 @@ export async function generateStoryPieceWithProgress(
 		const now = Date.now();
 
 		// Update message at throttled intervals when we have new story content
-		if (storyContent && storyContent !== lastStoryContent && now - lastUpdateTime >= throttleMs) {
+		if (
+			storyContent &&
+			storyContent !== lastStoryContent &&
+			now - lastUpdateTime >= throttleMs
+		) {
 			lastStoryContent = storyContent;
 			lastUpdateTime = now;
 
-			await slack.chat.update({
+			const updateResult = await slack.chat.update({
 				channel,
 				ts: messageTs,
 				text: `${prefix}> _${storyContent}_ :writing_hand:`,
 			});
+			if (!updateResult.ok) {
+				console.warn(`Failed to update progress: ${updateResult.error}`);
+			}
 		}
 	}
 
@@ -286,7 +338,13 @@ export async function generateStoryPieceWithProgress(
 	// Get the final result from partialOutputStream
 	let result: StoryPiece | undefined;
 	for await (const partial of stream.experimental_partialOutputStream) {
-		if (partial && partial.done !== undefined && partial.story && partial.encouragement) {
+		// Use typeof checks to handle empty strings correctly
+		if (
+			partial &&
+			typeof partial.done === "boolean" &&
+			typeof partial.story === "string" &&
+			typeof partial.encouragement === "string"
+		) {
 			result = partial as StoryPiece;
 		}
 	}
@@ -297,11 +355,14 @@ export async function generateStoryPieceWithProgress(
 	}
 
 	// Final update with complete story (without typing indicator)
-	await slack.chat.update({
+	const finalUpdateResult = await slack.chat.update({
 		channel,
 		ts: messageTs,
 		text: `${prefix}> _${result.story}_`,
 	});
+	if (!finalUpdateResult.ok) {
+		console.warn(`Failed to update final story: ${finalUpdateResult.error}`);
+	}
 
 	return result;
 }

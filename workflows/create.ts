@@ -64,7 +64,6 @@ export async function storytime(slashCommand: URLSearchParams) {
 	const introText = `It's storytime! I'll start the story and you continue it.`;
 
 	let ts: string;
-	let botId: string | undefined;
 
 	if (useStreaming) {
 		// Use streaming for real-time progress - shows the story as it's generated
@@ -75,9 +74,8 @@ export async function storytime(slashCommand: URLSearchParams) {
 		});
 
 		ts = introTs;
-		botId = message?.user;
 
-		if (!botId) {
+		if (!message?.user) {
 			throw new FatalError("Failed to get bot ID");
 		}
 
@@ -136,17 +134,17 @@ export async function storytime(slashCommand: URLSearchParams) {
 				content: aiResponse.story,
 			});
 
-			// Remove thinking reaction and post encouragement
+			// Remove thinking reaction and post encouragement as a separate message
+			// (don't overwrite the streamed story content)
 			await Promise.all([
 				removeReactionFromMessage({
 					channel: channelId,
 					timestamp: data.ts,
 					name: thinkingEmoji,
 				}),
-				// Update the streamed message with encouragement formatting
-				updateSlackMessage({
+				postSlackMessage({
 					channel: channelId,
-					ts: responseTs,
+					thread_ts: ts,
 					text: aiResponse.encouragement,
 				}),
 			]);
@@ -171,9 +169,8 @@ export async function storytime(slashCommand: URLSearchParams) {
 		]);
 
 		ts = introTs;
-		botId = message?.user;
 
-		if (!botId) {
+		if (!message?.user) {
 			throw new FatalError("Failed to get bot ID");
 		}
 
