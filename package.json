@@ -10,7 +10,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@slack/web-api": "^7.9.3",
+    "@slack/web-api": "^7.11.0",
     "@tootallnate/string-argv": "^1.0.1",
     "@vercel/functions": "^2.2.8",
     "@vercel/otel": "^1.13.0",
