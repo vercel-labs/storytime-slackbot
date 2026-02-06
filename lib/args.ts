@@ -7,6 +7,7 @@ export interface StorytimeArgs {
 	imageModel: string;
 	imageStyle: string;
 	thinkingEmoji: string;
+	useStreaming: boolean;
 }
 
 export function parseStorytimeArgs(argv: string[]): StorytimeArgs {
@@ -17,6 +18,8 @@ export function parseStorytimeArgs(argv: string[]): StorytimeArgs {
 			"--image-style": String,
 			"--theme": [String],
 			"--thinking-emoji": String,
+			"--streaming": Boolean,
+			"--no-streaming": Boolean,
 
 			// Aliases
 			"-m": "--model",
@@ -34,11 +37,15 @@ export function parseStorytimeArgs(argv: string[]): StorytimeArgs {
 		themes.push(THEMES[Math.floor(Math.random() * THEMES.length)]);
 	}
 
+	// Streaming is enabled by default, can be disabled with --no-streaming
+	const useStreaming = args["--no-streaming"] ? false : (args["--streaming"] ?? true);
+
 	return {
 		themes,
 		model: args["--model"] || "anthropic/claude-haiku-4.5",
 		imageModel: args["--image-model"] || "google/gemini-3-pro-image",
 		imageStyle: args["--image-style"] || "",
 		thinkingEmoji: args["--thinking-emoji"] || "thinking_face",
+		useStreaming,
 	};
 }
