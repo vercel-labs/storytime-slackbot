@@ -29,7 +29,6 @@ export const slackMessageHook = defineHook({ schema: slackMessageHookSchema });
 
 export async function storytime(slashCommand: URLSearchParams) {
 	"use workflow";
-	console.log(slashCommand);
 
 	// Initialize the workflow
 	const channelId = slashCommand.get("channel_id");
@@ -38,11 +37,9 @@ export async function storytime(slashCommand: URLSearchParams) {
 	}
 
 	const argv = stringToArgv(slashCommand.get("text") || "");
-	console.log({ argv });
 
 	const { themes, model, imageModel, imageStyle, thinkingEmoji } =
 		parseStorytimeArgs(argv);
-	console.log({ themes, model, imageModel, imageStyle, thinkingEmoji });
 
 	// ...including local state like the entire message history
 	let finalStory = "";

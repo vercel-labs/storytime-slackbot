@@ -4,8 +4,7 @@ import { storytime } from "@/workflows/create";
 
 async function startStorytime(formData: URLSearchParams) {
 	console.log("Starting Storytime workflow");
-	const w = await start(storytime, [formData]);
-	console.log(w);
+	await start(storytime, [formData]);
 }
 
 export async function POST(req: Request) {
