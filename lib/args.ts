@@ -14,15 +14,39 @@ export interface StorytimeArgs {
 	imageStyle: string;
 	thinkingEmoji: string;
 	panels: number | null;
-	/**
-	 * Deployment ID to target when starting the workflow. Used by the
-	 * command route when calling `start()` so that slash-command
-	 * invocations can be routed to a specific preview deployment (useful
-	 * for testing workflow changes from a branch). When `null`, the
-	 * workflow runtime infers the deployment from environment variables
-	 * (default Vercel behavior).
-	 */
-	deploymentId: string | null;
+}
+
+/**
+ * Extract only the `--deployment-id` / `-d` flag from the argv, ignoring
+ * everything else.
+ *
+ * This runs in the API route BEFORE `start()` is called, so that a
+ * slash-command invocation can be routed to a specific (e.g. preview)
+ * deployment. The full arg parsing then happens inside the workflow on
+ * the target deployment — that way, if the preview deployment adds or
+ * changes flags, those changes are parsed by the deployment that
+ * actually understands them (rather than by whichever deployment
+ * happens to be handling the HTTP request).
+ *
+ * Permissive mode is used so unknown flags (which the target deployment
+ * may understand) don't cause parsing to fail here.
+ */
+export function parseDeploymentId(argv: string[]): string | undefined {
+	try {
+		const args = arg(
+			{
+				"--deployment-id": String,
+				"-d": "--deployment-id",
+			},
+			{ argv, permissive: true },
+		);
+		return args["--deployment-id"]?.trim() || undefined;
+	} catch {
+		// If even permissive parsing fails (malformed input), fall back to
+		// no deployment override — the workflow's stricter parser will
+		// surface the error to the user.
+		return undefined;
+	}
 }
 
 export function parseStorytimeArgs(argv: string[]): StorytimeArgs {
@@ -34,6 +58,10 @@ export function parseStorytimeArgs(argv: string[]): StorytimeArgs {
 			"--theme": [String],
 			"--thinking-emoji": String,
 			"--panels": Number,
+			// Accepted but ignored here — `--deployment-id` is consumed
+			// by the API route before `start()` and must not affect
+			// workflow behavior. Registered so it doesn't trigger an
+			// "unknown flag" error from `arg`.
 			"--deployment-id": String,
 
 			// Aliases
@@ -71,10 +99,6 @@ export function parseStorytimeArgs(argv: string[]): StorytimeArgs {
 		panels = rawPanels;
 	}
 
-	// Normalize `--deployment-id` (empty string -> null)
-	const rawDeploymentId = args["--deployment-id"]?.trim();
-	const deploymentId = rawDeploymentId ? rawDeploymentId : null;
-
 	return {
 		themes,
 		model: args["--model"] || "anthropic/claude-haiku-4.5",
@@ -82,6 +106,5 @@ export function parseStorytimeArgs(argv: string[]): StorytimeArgs {
 		imageStyle: args["--image-style"] || "",
 		thinkingEmoji: args["--thinking-emoji"] || "thinking_face",
 		panels,
-		deploymentId,
 	};
 }

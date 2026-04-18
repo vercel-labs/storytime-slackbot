@@ -1,7 +1,8 @@
+import { stringToArgv } from "@tootallnate/string-argv";
 import type { ModelMessage } from "ai";
 import { defineHook, FatalError } from "workflow";
 import { z } from "zod";
-import type { StorytimeArgs } from "../lib/args";
+import { parseStorytimeArgs } from "../lib/args";
 import { SYSTEM_PROMPT } from "../lib/prompt";
 
 // Look ma no queues or kv!
@@ -26,14 +27,18 @@ const slackMessageHookSchema = z.object({
 
 export const slackMessageHook = defineHook({ schema: slackMessageHookSchema });
 
-export async function storytime(channelId: string, args: StorytimeArgs) {
+export async function storytime(slashCommand: URLSearchParams) {
 	"use workflow";
 
+	// Initialize the workflow
+	const channelId = slashCommand.get("channel_id");
 	if (!channelId) {
-		throw new FatalError("`channelId` is required");
+		throw new FatalError("`channel_id` is required");
 	}
 
-	const { themes, model, imageModel, imageStyle, thinkingEmoji, panels } = args;
+	const argv = stringToArgv(slashCommand.get("text") || "");
+	const { themes, model, imageModel, imageStyle, thinkingEmoji, panels } =
+		parseStorytimeArgs(argv);
 
 	// ...including local state like the entire message history
 	let finalStory = "";

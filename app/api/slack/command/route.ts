@@ -1,24 +1,28 @@
 import { stringToArgv } from "@tootallnate/string-argv";
 import { waitUntil } from "@vercel/functions";
 import { start } from "workflow/api";
-import { parseStorytimeArgs, type StorytimeArgs } from "@/lib/args";
+import { parseDeploymentId } from "@/lib/args";
 import { storytime } from "@/workflows/create";
 
-async function startStorytime(channelId: string, args: StorytimeArgs) {
+async function startStorytime(formData: URLSearchParams) {
+	// Only extract `--deployment-id` here; full arg parsing is deferred
+	// to the workflow on the target deployment so that flag changes in a
+	// preview deployment are parsed by the deployment that understands
+	// them.
+	const argv = stringToArgv(formData.get("text") || "");
+	const deploymentId = parseDeploymentId(argv);
+
 	console.log("Starting Storytime workflow", {
-		channelId,
-		deploymentId: args.deploymentId ?? "(default)",
+		deploymentId: deploymentId ?? "(default)",
 	});
 
-	// If a --deployment-id was provided, route the workflow run to that
-	// specific deployment. This is useful for testing workflow changes
-	// from a branch's preview deployment.
-	if (args.deploymentId) {
-		await start(storytime, [channelId, args], {
-			deploymentId: args.deploymentId,
-		});
+	// The `start()` overloads are split on whether `deploymentId` is
+	// present, so we need separate call sites rather than passing
+	// `{ deploymentId }` with a possibly-undefined value.
+	if (deploymentId) {
+		await start(storytime, [formData], { deploymentId });
 	} else {
-		await start(storytime, [channelId, args]);
+		await start(storytime, [formData]);
 	}
 }
 
@@ -26,23 +30,9 @@ export async function POST(req: Request) {
 	const rawBody = await req.text();
 	const formData = new URLSearchParams(rawBody);
 
-	const channelId = formData.get("channel_id");
-	if (!channelId) {
-		return new Response("`channel_id` is required", { status: 400 });
-	}
-
-	let args: StorytimeArgs;
-	try {
-		const argv = stringToArgv(formData.get("text") || "");
-		args = parseStorytimeArgs(argv);
-	} catch (err) {
-		const message = err instanceof Error ? err.message : String(err);
-		return new Response(`Invalid command: ${message}`, { status: 200 });
-	}
-
 	// We start the workflow in the background since
 	// Slack expects a response immediately
-	waitUntil(startStorytime(channelId, args));
+	waitUntil(startStorytime(formData));
 
 	return new Response(`Let's create a story!`);
 }
