@@ -14,6 +14,15 @@ export interface StorytimeArgs {
 	imageStyle: string;
 	thinkingEmoji: string;
 	panels: number | null;
+	/**
+	 * Deployment ID to target when starting the workflow. Used by the
+	 * command route when calling `start()` so that slash-command
+	 * invocations can be routed to a specific preview deployment (useful
+	 * for testing workflow changes from a branch). When `null`, the
+	 * workflow runtime infers the deployment from environment variables
+	 * (default Vercel behavior).
+	 */
+	deploymentId: string | null;
 }
 
 export function parseStorytimeArgs(argv: string[]): StorytimeArgs {
@@ -25,6 +34,7 @@ export function parseStorytimeArgs(argv: string[]): StorytimeArgs {
 			"--theme": [String],
 			"--thinking-emoji": String,
 			"--panels": Number,
+			"--deployment-id": String,
 
 			// Aliases
 			"-m": "--model",
@@ -33,6 +43,7 @@ export function parseStorytimeArgs(argv: string[]): StorytimeArgs {
 			"-t": "--theme",
 			"-e": "--thinking-emoji",
 			"-p": "--panels",
+			"-d": "--deployment-id",
 		},
 		{ argv },
 	);
@@ -60,6 +71,10 @@ export function parseStorytimeArgs(argv: string[]): StorytimeArgs {
 		panels = rawPanels;
 	}
 
+	// Normalize `--deployment-id` (empty string -> null)
+	const rawDeploymentId = args["--deployment-id"]?.trim();
+	const deploymentId = rawDeploymentId ? rawDeploymentId : null;
+
 	return {
 		themes,
 		model: args["--model"] || "anthropic/claude-haiku-4.5",
@@ -67,5 +82,6 @@ export function parseStorytimeArgs(argv: string[]): StorytimeArgs {
 		imageStyle: args["--image-style"] || "",
 		thinkingEmoji: args["--thinking-emoji"] || "thinking_face",
 		panels,
+		deploymentId,
 	};
 }
