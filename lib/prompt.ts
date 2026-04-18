@@ -57,11 +57,39 @@ You don't need to provide the intermediate story contents, just the initial intr
 and the final story in the "story" field (do not include information about the panel numbers).
 When the story is complete, say a light hearted comment about the story in the "encouragement" field.`;
 
+// Convert a small integer to its English word form (e.g. 6 -> "six").
+// Used to reinforce the panel count in the image-generation prompt, since
+// image models often respond better to spelled-out numbers.
+const NUMBER_WORDS = [
+	"zero",
+	"one",
+	"two",
+	"three",
+	"four",
+	"five",
+	"six",
+	"seven",
+	"eight",
+	"nine",
+	"ten",
+	"eleven",
+	"twelve",
+];
+const numberToWord = (n: number): string =>
+	NUMBER_WORDS[n] ?? String(n);
+
 export const IMAGE_GEN_PROMPT = (
 	finalStory: string,
 	style = "",
-) => `Generate an image of a children's storybook panel consisting of
-4 to 5 (four to five) panels with the following story${style ? ` in the style of ${style}` : ""}.
+	panels: number | null = null,
+) => {
+	const panelDescription =
+		panels == null
+			? "4 to 5 (four to five) panels"
+			: `exactly ${panels} (${numberToWord(panels)}) panels`;
+
+	return `Generate an image of a children's storybook panel consisting of
+${panelDescription} with the following story${style ? ` in the style of ${style}` : ""}.
 
 Include text in the panels to tell the story.
 Please ensure that all panels are visible, and not being cut off.
@@ -69,3 +97,4 @@ Please ensure that the text is correct, legible, and using the correct names.
 
 Story:
 ${finalStory}`;
+};

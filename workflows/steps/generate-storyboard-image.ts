@@ -9,13 +9,14 @@ export async function generateStoryboardImage(
 	finalStory: string,
 	imageModel: string,
 	imageStyle: string,
+	panels: number | null = null,
 ): Promise<string | null> {
 	"use step";
 
 	console.time("Generating storyboard image");
 	const result = await generateText({
 		model: imageModel,
-		prompt: IMAGE_GEN_PROMPT(finalStory, imageStyle),
+		prompt: IMAGE_GEN_PROMPT(finalStory, imageStyle, panels),
 	});
 	console.timeEnd("Generating storyboard image");
 

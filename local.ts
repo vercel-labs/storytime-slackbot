@@ -14,10 +14,14 @@ const rl = readline.createInterface({
 	output: process.stdout,
 });
 
-const { themes, model, imageModel } = parseStorytimeArgs(process.argv.slice(2));
+const { themes, model, imageModel, imageStyle, panels } = parseStorytimeArgs(
+	process.argv.slice(2),
+);
 console.log(`Themes: ${themes.join(", ")}`);
 console.log(`Model: ${model}`);
 console.log(`Image Model: ${imageModel}`);
+if (imageStyle) console.log(`Image Style: ${imageStyle}`);
+if (panels != null) console.log(`Panels: ${panels}`);
 
 const messages: ModelMessage[] = [
 	{
@@ -76,7 +80,7 @@ console.log(finalStory);
 
 const result = await generateText({
 	model: imageModel,
-	prompt: IMAGE_GEN_PROMPT(finalStory),
+	prompt: IMAGE_GEN_PROMPT(finalStory, imageStyle, panels),
 });
 
 console.log(await terminalImage.buffer(result.files[0].uint8Array));

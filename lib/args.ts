@@ -1,12 +1,19 @@
 import arg from "arg";
 import { THEMES } from "./prompt";
 
+// Number of panels in the final storyboard image.
+// When `panels` is `null`, the prompt falls back to the original
+// "4 to 5" range (the historical default).
+export const MIN_PANELS = 2;
+export const MAX_PANELS = 12;
+
 export interface StorytimeArgs {
 	themes: string[];
 	model: string;
 	imageModel: string;
 	imageStyle: string;
 	thinkingEmoji: string;
+	panels: number | null;
 }
 
 export function parseStorytimeArgs(argv: string[]): StorytimeArgs {
@@ -17,6 +24,7 @@ export function parseStorytimeArgs(argv: string[]): StorytimeArgs {
 			"--image-style": String,
 			"--theme": [String],
 			"--thinking-emoji": String,
+			"--panels": Number,
 
 			// Aliases
 			"-m": "--model",
@@ -24,6 +32,7 @@ export function parseStorytimeArgs(argv: string[]): StorytimeArgs {
 			"-s": "--image-style",
 			"-t": "--theme",
 			"-e": "--thinking-emoji",
+			"-p": "--panels",
 		},
 		{ argv },
 	);
@@ -34,11 +43,29 @@ export function parseStorytimeArgs(argv: string[]): StorytimeArgs {
 		themes.push(THEMES[Math.floor(Math.random() * THEMES.length)]);
 	}
 
+	// Validate & clamp `--panels` if provided
+	let panels: number | null = null;
+	const rawPanels = args["--panels"];
+	if (rawPanels !== undefined) {
+		if (!Number.isFinite(rawPanels) || !Number.isInteger(rawPanels)) {
+			throw new Error(
+				`--panels must be an integer between ${MIN_PANELS} and ${MAX_PANELS}`,
+			);
+		}
+		if (rawPanels < MIN_PANELS || rawPanels > MAX_PANELS) {
+			throw new Error(
+				`--panels must be between ${MIN_PANELS} and ${MAX_PANELS} (got ${rawPanels})`,
+			);
+		}
+		panels = rawPanels;
+	}
+
 	return {
 		themes,
 		model: args["--model"] || "anthropic/claude-haiku-4.5",
 		imageModel: args["--image-model"] || "google/gemini-3-pro-image",
 		imageStyle: args["--image-style"] || "",
 		thinkingEmoji: args["--thinking-emoji"] || "thinking_face",
+		panels,
 	};
 }
