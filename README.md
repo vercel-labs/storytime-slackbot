@@ -117,7 +117,6 @@ The `/storytime` command supports several optional flags:
 | `--image-style`    | `-s`  | Art style for the generated storyboard image (e.g., "Dr. Seuss", "coloring book", "watercolor").         |
 | `--panels`         | `-p`  | Number of panels in the final storyboard image (integer, 2–12). Default: 4–5 panels.                     |
 | `--thinking-emoji` | `-e`  | Emoji shown while processing. Default: `thinking_face` 🤔                                                |
-| `--deployment-id`  | `-d`  | Run the workflow on a specific deployment (e.g. a preview deployment).                                   |
 
 The `--model` and `--image-model` flags accept [AI Gateway model specifiers](https://vercel.com/ai-gateway/models) (e.g., `anthropic/claude-sonnet-4`, `openai/gpt-4.1-mini`, `google/gemini-2.5-flash`).
 
@@ -133,11 +132,7 @@ The `--model` and `--image-model` flags accept [AI Gateway model specifiers](htt
 /storytime -s "coloring book"
 /storytime -p 8
 /storytime -t Pirates -s watercolor -p 6
-/storytime -d dpl_abc123def456
 ```
-
-> **Tip:** Use `--deployment-id` to test workflow changes from a branch's
-> preview deployment without changing the Slack app's Request URLs.
 
 ![Slack Interface](./public/storytime-slack.png)
 
