@@ -21,8 +21,35 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "terminal-image": "^3.1.1",
-    "workflow": "4.2.1",
+    "workflow": "https://workflow-docs-git-peter-v2-flow.vercel.sh/workflow.tgz?x-vercel-protection-bypass=DwmrtDglOsZyAA2QaYCx7nS7UMmtLVoy",
     "zod": "^4.0.17"
+  },
+  "pnpm": {
+    "overrides": {
+      "workflow": "https://workflow-docs-git-peter-v2-flow.vercel.sh/workflow.tgz?x-vercel-protection-bypass=DwmrtDglOsZyAA2QaYCx7nS7UMmtLVoy",
+      "@workflow/ai": "https://workflow-docs-git-peter-v2-flow.vercel.sh/workflow-ai.tgz?x-vercel-protection-bypass=DwmrtDglOsZyAA2QaYCx7nS7UMmtLVoy",
+      "@workflow/astro": "https://workflow-docs-git-peter-v2-flow.vercel.sh/workflow-astro.tgz?x-vercel-protection-bypass=DwmrtDglOsZyAA2QaYCx7nS7UMmtLVoy",
+      "@workflow/builders": "https://workflow-docs-git-peter-v2-flow.vercel.sh/workflow-builders.tgz?x-vercel-protection-bypass=DwmrtDglOsZyAA2QaYCx7nS7UMmtLVoy",
+      "@workflow/cli": "https://workflow-docs-git-peter-v2-flow.vercel.sh/workflow-cli.tgz?x-vercel-protection-bypass=DwmrtDglOsZyAA2QaYCx7nS7UMmtLVoy",
+      "@workflow/core": "https://workflow-docs-git-peter-v2-flow.vercel.sh/workflow-core.tgz?x-vercel-protection-bypass=DwmrtDglOsZyAA2QaYCx7nS7UMmtLVoy",
+      "@workflow/errors": "https://workflow-docs-git-peter-v2-flow.vercel.sh/workflow-errors.tgz?x-vercel-protection-bypass=DwmrtDglOsZyAA2QaYCx7nS7UMmtLVoy",
+      "@workflow/nest": "https://workflow-docs-git-peter-v2-flow.vercel.sh/workflow-nest.tgz?x-vercel-protection-bypass=DwmrtDglOsZyAA2QaYCx7nS7UMmtLVoy",
+      "@workflow/next": "https://workflow-docs-git-peter-v2-flow.vercel.sh/workflow-next.tgz?x-vercel-protection-bypass=DwmrtDglOsZyAA2QaYCx7nS7UMmtLVoy",
+      "@workflow/nitro": "https://workflow-docs-git-peter-v2-flow.vercel.sh/workflow-nitro.tgz?x-vercel-protection-bypass=DwmrtDglOsZyAA2QaYCx7nS7UMmtLVoy",
+      "@workflow/nuxt": "https://workflow-docs-git-peter-v2-flow.vercel.sh/workflow-nuxt.tgz?x-vercel-protection-bypass=DwmrtDglOsZyAA2QaYCx7nS7UMmtLVoy",
+      "@workflow/rollup": "https://workflow-docs-git-peter-v2-flow.vercel.sh/workflow-rollup.tgz?x-vercel-protection-bypass=DwmrtDglOsZyAA2QaYCx7nS7UMmtLVoy",
+      "@workflow/serde": "https://workflow-docs-git-peter-v2-flow.vercel.sh/workflow-serde.tgz?x-vercel-protection-bypass=DwmrtDglOsZyAA2QaYCx7nS7UMmtLVoy",
+      "@workflow/sveltekit": "https://workflow-docs-git-peter-v2-flow.vercel.sh/workflow-sveltekit.tgz?x-vercel-protection-bypass=DwmrtDglOsZyAA2QaYCx7nS7UMmtLVoy",
+      "@workflow/swc-plugin": "https://workflow-docs-git-peter-v2-flow.vercel.sh/workflow-swc-plugin.tgz?x-vercel-protection-bypass=DwmrtDglOsZyAA2QaYCx7nS7UMmtLVoy",
+      "@workflow/typescript-plugin": "https://workflow-docs-git-peter-v2-flow.vercel.sh/workflow-typescript-plugin.tgz?x-vercel-protection-bypass=DwmrtDglOsZyAA2QaYCx7nS7UMmtLVoy",
+      "@workflow/utils": "https://workflow-docs-git-peter-v2-flow.vercel.sh/workflow-utils.tgz?x-vercel-protection-bypass=DwmrtDglOsZyAA2QaYCx7nS7UMmtLVoy",
+      "@workflow/vite": "https://workflow-docs-git-peter-v2-flow.vercel.sh/workflow-vite.tgz?x-vercel-protection-bypass=DwmrtDglOsZyAA2QaYCx7nS7UMmtLVoy",
+      "@workflow/web": "https://workflow-docs-git-peter-v2-flow.vercel.sh/workflow-web.tgz?x-vercel-protection-bypass=DwmrtDglOsZyAA2QaYCx7nS7UMmtLVoy",
+      "@workflow/world": "https://workflow-docs-git-peter-v2-flow.vercel.sh/workflow-world.tgz?x-vercel-protection-bypass=DwmrtDglOsZyAA2QaYCx7nS7UMmtLVoy",
+      "@workflow/world-local": "https://workflow-docs-git-peter-v2-flow.vercel.sh/workflow-world-local.tgz?x-vercel-protection-bypass=DwmrtDglOsZyAA2QaYCx7nS7UMmtLVoy",
+      "@workflow/world-postgres": "https://workflow-docs-git-peter-v2-flow.vercel.sh/workflow-world-postgres.tgz?x-vercel-protection-bypass=DwmrtDglOsZyAA2QaYCx7nS7UMmtLVoy",
+      "@workflow/world-vercel": "https://workflow-docs-git-peter-v2-flow.vercel.sh/workflow-world-vercel.tgz?x-vercel-protection-bypass=DwmrtDglOsZyAA2QaYCx7nS7UMmtLVoy"
+    }
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
