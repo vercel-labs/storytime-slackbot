@@ -6,8 +6,6 @@ An interactive AI-powered Slack bot that creates collaborative children's storie
 
 Team members can then contribute to the story in a thread, with the AI helping to guide the narrative to completion and generating a beautiful storyboard image at the end.
 
-![Storyboard Example](./public/storyboard.png)
-
 ## Getting Started
 
 ### Prerequisites
@@ -104,6 +102,8 @@ After deployment, update your Slack app configuration:
 5. The bot will respond with encouragement and continue the narrative
 6. After 2-3 iterations, the bot will conclude the story
 7. A beautiful storyboard image will be generated and shared
+
+![Storyboard Example](./public/storyboard.png)
 
 **Note**: The bot must be invited to a channel before the `/storytime` slash command will work in that channel.
 
