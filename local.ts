@@ -2,17 +2,14 @@ import dotenv from "dotenv";
 
 dotenv.config({ path: ".env.local" });
 
-import readline from "node:readline/promises";
 import { generateText, type ModelMessage, Output } from "ai";
 import terminalImage from "terminal-image";
 import { z } from "zod";
 import { parseStorytimeArgs } from "./lib/args.ts";
 import { IMAGE_GEN_PROMPT, SYSTEM_PROMPT } from "./lib/prompt.ts";
+import { createReadlineIterator } from "./readline.ts";
 
-const rl = readline.createInterface({
-	input: process.stdin,
-	output: process.stdout,
-});
+const userInput = createReadlineIterator("Enter your story piece: ");
 
 const { themes, model, imageModel, imageStyle, panels } = parseStorytimeArgs(
 	process.argv.slice(2),
@@ -42,7 +39,18 @@ const StorytimeSchema = z.object({
 
 let finalStory = "";
 
-while (true) {
+// Generate the opening of the story before reading any user input
+const opening = await generateText({
+	model,
+	messages,
+	experimental_output: Output.object({ schema: StorytimeSchema }),
+});
+console.log(opening.experimental_output);
+messages.push({ role: "assistant", content: opening.text });
+
+for await (const data of userInput) {
+	messages.push({ role: "user", content: data.text });
+
 	const result = await generateText({
 		model,
 		messages,
@@ -61,18 +69,7 @@ while (true) {
 		finalStory = result.experimental_output.story;
 		break;
 	}
-
-	// read user input
-	console.log("");
-	const userInput = await rl.question("Enter your story piece: ");
-
-	messages.push({
-		role: "user",
-		content: userInput,
-	});
 }
-
-rl.close();
 
 console.log("");
 console.log("Here is the final story:");
