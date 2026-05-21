@@ -36,6 +36,11 @@ colorSchema: dark
 code, pre, .shiki, .slidev-code {
   font-family: 'Geist Mono', ui-monospace, monospace !important;
 }
+/* Hide the goto-slide dialog (triggered by pressing `g`) so it never appears
+   during a presentation if `g` is hit by accident. */
+#slidev-goto-dialog {
+  display: none !important;
+}
 </style>
 
 <div class="flex flex-col items-center justify-center h-full gap-8">
