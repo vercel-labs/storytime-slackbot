@@ -26,6 +26,9 @@ export async function generateStoryPiece(
 	const result = await generateText({
 		model,
 		messages,
+		providerOptions: {
+			gateway: { transcripts: { enabled: true } },
+		},
 		experimental_output: Output.object({
 			schema: StoryPieceSchema,
 		}),

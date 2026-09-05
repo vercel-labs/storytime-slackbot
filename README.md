@@ -66,6 +66,8 @@ SLACK_BOT_TOKEN=xoxb-your-bot-token-here
 AI_GATEWAY_API_KEY=your_ai_gateway_api_key
 ```
 
+AI Gateway request transcripts are enabled for story, image, and video generation, including the local script. This records prompts, files, and outputs in Gateway logs, including participants' story contributions. The setting applies to new requests only; it does not enable audio transcription.
+
 ### 5. Development
 
 ```bash
@@ -118,7 +120,7 @@ The `/storytime` command supports several optional flags:
 | `--image-model`    | `-i`  | Image generation model. Default: `google/gemini-3-pro-image`                                             |
 | `--image-style`    | `-s`  | Art style for the generated storyboard image (e.g., "Dr. Seuss", "coloring book", "watercolor").         |
 | `--video`          |       | Generate a video instead of the final storyboard image.                                                |
-| `--video-model`    |       | Video generation model used with `--video`. Default: `klingai/kling-v3.0-t2v`                            |
+| `--video-model`    |       | Video generation model used with `--video`. Default: `google/veo-3.1-generate-001`                       |
 | `--panels`         | `-p`  | Number of panels in the final storyboard image (integer, 2–12). Default: 4–5 panels.                     |
 | `--thinking-emoji` | `-e`  | Emoji shown while processing. Default: `thinking_face` 🤔                                                |
 
@@ -128,7 +130,7 @@ The `--video-model` flag also accepts an AI Gateway model specifier. The model m
 
 The `--image-model`, `--image-style`, and `--panels` options only affect image output, not video output. Without `--video`, the bot continues to generate a storyboard image.
 
-The provider must be able to reach the generated `/.well-known/workflow/v1/webhook/...` URL. Test video generation on a public deployment where deployment protection does not block the Workflow webhook endpoint.
+The provider must be able to reach the generated `/.well-known/workflow/v1/webhook/...` URL. The installed Workflow SDK uses the deployment-specific `VERCEL_URL` hostname, not the project's custom domain. Deployment Protection on that hostname can reject Gateway callbacks with HTTP 401 even when the custom domain is public. Test video generation on a deployment where protection does not block the Workflow webhook endpoint.
 
 **Examples:**
 

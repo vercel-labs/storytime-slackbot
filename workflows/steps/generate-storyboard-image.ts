@@ -17,6 +17,9 @@ export async function generateStoryboardImage(
 	const result = await generateText({
 		model: imageModel,
 		prompt: IMAGE_GEN_PROMPT(finalStory, imageStyle, panels),
+		providerOptions: {
+			gateway: { transcripts: { enabled: true } },
+		},
 	});
 	console.timeEnd("Generating storyboard image");
 

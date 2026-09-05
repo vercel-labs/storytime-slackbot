@@ -51,6 +51,9 @@ while (true) {
 	const result = await generateText({
 		model,
 		messages,
+		providerOptions: {
+			gateway: { transcripts: { enabled: true } },
+		},
 		experimental_output: Output.object({
 			schema: StorytimeSchema,
 		}),
@@ -86,6 +89,9 @@ console.log(finalStory);
 const result = await generateText({
 	model: imageModel,
 	prompt: IMAGE_GEN_PROMPT(finalStory, imageStyle, panels),
+	providerOptions: {
+		gateway: { transcripts: { enabled: true } },
+	},
 });
 
 console.log(await terminalImage.buffer(result.files[0].uint8Array));

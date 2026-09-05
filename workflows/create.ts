@@ -167,6 +167,9 @@ export async function storytime(slashCommand: URLSearchParams) {
 			const result = await generateVideo({
 				model: videoModel,
 				prompt: VIDEO_GEN_PROMPT(finalStory),
+				providerOptions: {
+					gateway: { transcripts: { enabled: true } },
+				},
 			});
 			fileId = await uploadStoryVideo(channelId, ts, result.videos[0]);
 		} catch (error) {

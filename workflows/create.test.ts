@@ -44,7 +44,7 @@ describe("storytime options", () => {
 	it("defaults to image output", () => {
 		expect(parseStorytimeArgs([])).toMatchObject({
 			video: false,
-			videoModel: "klingai/kling-v3.0-t2v",
+			videoModel: "google/veo-3.1-generate-001",
 			imageModel: "google/gemini-3-pro-image",
 		});
 	});
@@ -138,8 +138,11 @@ describe("storytime final output", () => {
 		async (override) => {
 			await run(`--video${override}`);
 			expect(generateVideo).toHaveBeenCalledWith({
-				model: override ? "custom/video" : "klingai/kling-v3.0-t2v",
+				model: override ? "custom/video" : "google/veo-3.1-generate-001",
 				prompt: VIDEO_GEN_PROMPT(finalStory),
+				providerOptions: {
+					gateway: { transcripts: { enabled: true } },
+				},
 			});
 			expect(generateStoryboardImage).not.toHaveBeenCalled();
 			expect(uploadStoryVideo).toHaveBeenCalledWith("channel", "thread", video);
