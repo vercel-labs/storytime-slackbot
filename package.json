@@ -19,7 +19,7 @@
     "@tootallnate/string-argv": "^1.0.1",
     "@vercel/functions": "^2.2.8",
     "@vercel/otel": "^1.13.0",
-    "ai": "^5.0.114",
+    "ai": "^7.0.93",
     "arg": "^5.0.2",
     "dotenv": "^17.2.1",
     "next": "15.4.10",

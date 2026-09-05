@@ -30,12 +30,12 @@ export async function generateStoryPiece(
 		providerOptions: transcripts
 			? { gateway: { transcripts: { enabled: true } } }
 			: undefined,
-		experimental_output: Output.object({
+		output: Output.object({
 			schema: StoryPieceSchema,
 		}),
 		experimental_telemetry: { isEnabled: true },
 	});
 	console.timeEnd("Generating story piece");
 
-	return result.experimental_output;
+	return result.output;
 }

@@ -53,19 +53,19 @@ while (true) {
 		providerOptions: transcripts
 			? { gateway: { transcripts: { enabled: true } } }
 			: undefined,
-		experimental_output: Output.object({
+		output: Output.object({
 			schema: StorytimeSchema,
 		}),
 	});
-	console.log(result.experimental_output);
+	console.log(result.output);
 
 	messages.push({
 		role: "assistant",
 		content: result.text,
 	});
 
-	if (result.experimental_output?.done) {
-		finalStory = result.experimental_output.story;
+	if (result.output?.done) {
+		finalStory = result.output.story;
 		break;
 	}
 
