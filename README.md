@@ -66,7 +66,7 @@ SLACK_BOT_TOKEN=xoxb-your-bot-token-here
 AI_GATEWAY_API_KEY=your_ai_gateway_api_key
 ```
 
-AI Gateway request transcripts are enabled for story, image, and video generation, including the local script. This records prompts, files, and outputs in Gateway logs, including participants' story contributions. The setting applies to new requests only; it does not enable audio transcription.
+AI Gateway request transcripts are disabled by default. To opt in for a session, first enable transcripts in your team's AI Gateway settings, then use `/storytime --transcripts` (or `pnpm tsx local.ts --transcripts`). The flag records prompts, files, and outputs for the session's story and image or video requests, including participants' story contributions. It applies to new requests only and does not enable audio transcription. Without the flag, the bot does not request transcripts.
 
 ### 5. Development
 
@@ -122,6 +122,7 @@ The `/storytime` command supports several optional flags:
 | `--video`          |       | Generate a video instead of the final storyboard image.                                                |
 | `--video-model`    |       | Video generation model used with `--video`. Default: `google/veo-3.1-generate-001`                       |
 | `--video-duration` |       | Video duration in seconds, used with `--video`. Must be positive; supported values depend on the model. Omit to use the model's default. |
+| `--transcripts`    |       | Enable Gateway request transcripts for this session. Off by default; requires transcripts enabled in the team's AI Gateway settings. |
 | `--panels`         | `-p`  | Number of panels in the final storyboard image (integer, 2–12). Default: 4–5 panels.                     |
 | `--thinking-emoji` | `-e`  | Emoji shown while processing. Default: `thinking_face` 🤔                                                |
 
@@ -138,6 +139,7 @@ The provider must be able to reach the generated `/.well-known/workflow/v1/webho
 ```
 /storytime
 /storytime --video
+/storytime --video --transcripts
 /storytime --video --video-duration 8
 /storytime --video --style claymation
 /storytime --video -t Pirates -t Space
@@ -171,7 +173,7 @@ pnpm tsx local.ts -t Pirates -t Space
 pnpm tsx local.ts -t Magic -m anthropic/claude-sonnet-4
 ```
 
-The local script accepts the same `--theme`, `--model`, `--image-model`, `--style` (including `-s`), and `--panels` flags as the Slack command.
+The local script accepts the same `--theme`, `--model`, `--image-model`, `--style` (including `-s`), `--panels`, and `--transcripts` flags as the Slack command.
 
 The local script does not support `--video`, which needs a running Workflow runtime and a publicly reachable webhook. Test video generation through the Slack command instead.
 

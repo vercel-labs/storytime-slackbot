@@ -48,6 +48,7 @@ describe("storytime options", () => {
 			videoDuration: undefined,
 			imageModel: "google/gemini-3-pro-image",
 			style: "",
+			transcripts: false,
 		});
 	});
 
@@ -57,6 +58,13 @@ describe("storytime options", () => {
 			expect(parseStorytimeArgs([flag, "pencil sketch"]).style).toBe("pencil sketch");
 		},
 	);
+
+	it("opts into transcripts without enabling video", () => {
+		expect(parseStorytimeArgs(["--transcripts"])).toMatchObject({
+			transcripts: true,
+			video: false,
+		});
+	});
 
 	it("combines --video with themes and a model override", () => {
 		expect(
@@ -154,7 +162,11 @@ describe("storytime final output", () => {
 			"google/gemini-3-pro-image",
 			"watercolor",
 			6,
+			false,
 		);
+		for (const call of vi.mocked(generateStoryPiece).mock.calls) {
+			expect(call[2]).toBe(false);
+		}
 		expect(generateVideo).not.toHaveBeenCalled();
 		expect(uploadStoryVideo).not.toHaveBeenCalled();
 		expect(broadcastStoryboardImage).toHaveBeenCalledWith(
@@ -172,9 +184,7 @@ describe("storytime final output", () => {
 				model: override ? "custom/video" : "google/veo-3.1-generate-001",
 				prompt: VIDEO_GEN_PROMPT(finalStory),
 				duration: undefined,
-				providerOptions: {
-					gateway: { transcripts: { enabled: true } },
-				},
+				providerOptions: undefined,
 			});
 			expect(generateStoryboardImage).not.toHaveBeenCalled();
 			expect(uploadStoryVideo).toHaveBeenCalledWith("channel", "thread", video);
@@ -195,6 +205,34 @@ describe("storytime final output", () => {
 				ts: "final",
 				text: `*Here is the final story:*\n\n> _${finalStory}_`,
 			});
+		},
+	);
+
+	it.each(["", " --video"])(
+		"enables transcripts for the whole session with --transcripts%s",
+		async (videoFlag) => {
+			await run(`--transcripts${videoFlag}`);
+			expect(generateStoryPiece).toHaveBeenCalledTimes(2);
+			for (const call of vi.mocked(generateStoryPiece).mock.calls) {
+				expect(call[2]).toBe(true);
+			}
+			if (videoFlag) {
+				expect(generateVideo).toHaveBeenCalledWith(
+					expect.objectContaining({
+						providerOptions: { gateway: { transcripts: { enabled: true } } },
+					}),
+				);
+			} else {
+				expect(generateStoryboardImage).toHaveBeenCalledWith(
+					"channel",
+					"thread",
+					finalStory,
+					"google/gemini-3-pro-image",
+					"",
+					null,
+					true,
+				);
+			}
 		},
 	);
 

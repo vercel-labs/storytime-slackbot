@@ -15,6 +15,7 @@ export interface StorytimeArgs {
 	video: boolean;
 	videoModel: string;
 	videoDuration?: number;
+	transcripts: boolean;
 	thinkingEmoji: string;
 	panels: number | null;
 }
@@ -28,6 +29,7 @@ export function parseStorytimeArgs(argv: string[]): StorytimeArgs {
 			"--video": Boolean,
 			"--video-model": String,
 			"--video-duration": Number,
+			"--transcripts": Boolean,
 			"--theme": [String],
 			"--thinking-emoji": String,
 			"--panels": Number,
@@ -82,6 +84,7 @@ export function parseStorytimeArgs(argv: string[]): StorytimeArgs {
 		video: args["--video"] ?? false,
 		videoModel: args["--video-model"] || "google/veo-3.1-generate-001",
 		videoDuration,
+		transcripts: args["--transcripts"] ?? false,
 		thinkingEmoji: args["--thinking-emoji"] || "thinking_face",
 		panels,
 	};

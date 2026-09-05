@@ -49,6 +49,7 @@ export async function storytime(slashCommand: URLSearchParams) {
 		video,
 		videoModel,
 		videoDuration,
+		transcripts,
 	} = parseStorytimeArgs(argv);
 
 	// ...including local state like the entire message history
@@ -73,7 +74,7 @@ export async function storytime(slashCommand: URLSearchParams) {
 			text: `${introText}\n\n> _Generating introduction…_ :${thinkingEmoji}:`,
 		}),
 		// Ask the LLM to initiate the story
-		generateStoryPiece(messages, model),
+		generateStoryPiece(messages, model, transcripts),
 	]);
 
 	const botId = message?.user;
@@ -114,7 +115,7 @@ export async function storytime(slashCommand: URLSearchParams) {
 
 		// Submit user's message to the LLM to continue the story
 		const [aiResponse] = await Promise.all([
-			generateStoryPiece(messages, model),
+			generateStoryPiece(messages, model, transcripts),
 			addReactionToMessage({
 				channel: channelId,
 				timestamp: data.ts,
@@ -169,9 +170,9 @@ export async function storytime(slashCommand: URLSearchParams) {
 				model: videoModel,
 				prompt: VIDEO_GEN_PROMPT(finalStory, style),
 				duration: videoDuration,
-				providerOptions: {
-					gateway: { transcripts: { enabled: true } },
-				},
+				providerOptions: transcripts
+					? { gateway: { transcripts: { enabled: true } } }
+					: undefined,
 			});
 			fileId = await uploadStoryVideo(channelId, ts, result.videos[0]);
 		} catch (error) {
@@ -190,6 +191,7 @@ export async function storytime(slashCommand: URLSearchParams) {
 			imageModel,
 			style,
 			panels,
+			transcripts,
 		);
 	}
 

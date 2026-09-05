@@ -9,9 +9,8 @@ import { z } from "zod";
 import { parseStorytimeArgs } from "./lib/args.ts";
 import { IMAGE_GEN_PROMPT, SYSTEM_PROMPT } from "./lib/prompt.ts";
 
-const { themes, model, imageModel, style, panels, video } = parseStorytimeArgs(
-	process.argv.slice(2),
-);
+const { themes, model, imageModel, style, panels, video, transcripts } =
+	parseStorytimeArgs(process.argv.slice(2));
 if (video) {
 	throw new Error(
 		"--video requires a Workflow runtime. Use /storytime --video in Slack.",
@@ -51,9 +50,9 @@ while (true) {
 	const result = await generateText({
 		model,
 		messages,
-		providerOptions: {
-			gateway: { transcripts: { enabled: true } },
-		},
+		providerOptions: transcripts
+			? { gateway: { transcripts: { enabled: true } } }
+			: undefined,
 		experimental_output: Output.object({
 			schema: StorytimeSchema,
 		}),
@@ -89,9 +88,9 @@ console.log(finalStory);
 const result = await generateText({
 	model: imageModel,
 	prompt: IMAGE_GEN_PROMPT(finalStory, style, panels),
-	providerOptions: {
-		gateway: { transcripts: { enabled: true } },
-	},
+	providerOptions: transcripts
+		? { gateway: { transcripts: { enabled: true } } }
+		: undefined,
 });
 
 console.log(await terminalImage.buffer(result.files[0].uint8Array));
