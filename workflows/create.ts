@@ -48,6 +48,7 @@ export async function storytime(slashCommand: URLSearchParams) {
 		panels,
 		video,
 		videoModel,
+		videoDuration,
 	} = parseStorytimeArgs(argv);
 
 	// ...including local state like the entire message history
@@ -167,6 +168,7 @@ export async function storytime(slashCommand: URLSearchParams) {
 			const result = await generateVideo({
 				model: videoModel,
 				prompt: VIDEO_GEN_PROMPT(finalStory),
+				duration: videoDuration,
 				providerOptions: {
 					gateway: { transcripts: { enabled: true } },
 				},

@@ -45,6 +45,7 @@ describe("storytime options", () => {
 		expect(parseStorytimeArgs([])).toMatchObject({
 			video: false,
 			videoModel: "google/veo-3.1-generate-001",
+			videoDuration: undefined,
 			imageModel: "google/gemini-3-pro-image",
 		});
 	});
@@ -71,6 +72,28 @@ describe("storytime options", () => {
 		expect(parseStorytimeArgs(["--video-model", "custom/video"]).video).toBe(
 			false,
 		);
+	});
+
+	it.each([8, 2.5])("parses a video duration of %s seconds", (duration) => {
+		expect(
+			parseStorytimeArgs(["--video-duration", String(duration)]),
+		).toMatchObject({
+			video: false,
+			videoDuration: duration,
+		});
+	});
+
+	it.each(["0", "-1", "NaN", "Infinity", "abc"])(
+		"rejects invalid video duration %s",
+		(duration) => {
+			expect(() => parseStorytimeArgs(["--video-duration", duration])).toThrow(
+				"--video-duration must be a positive number of seconds",
+			);
+		},
+	);
+
+	it("requires a value for --video-duration", () => {
+		expect(() => parseStorytimeArgs(["--video-duration"])).toThrow();
 	});
 });
 
@@ -140,6 +163,7 @@ describe("storytime final output", () => {
 			expect(generateVideo).toHaveBeenCalledWith({
 				model: override ? "custom/video" : "google/veo-3.1-generate-001",
 				prompt: VIDEO_GEN_PROMPT(finalStory),
+				duration: undefined,
 				providerOptions: {
 					gateway: { transcripts: { enabled: true } },
 				},
@@ -165,6 +189,13 @@ describe("storytime final output", () => {
 			});
 		},
 	);
+
+	it("passes the requested duration to video generation", async () => {
+		await run("--video --video-duration 8");
+		expect(generateVideo).toHaveBeenCalledWith(
+			expect.objectContaining({ duration: 8 }),
+		);
+	});
 
 	it.each(["generation", "upload"])(
 		"reports %s failure without losing the final story",

@@ -121,6 +121,7 @@ The `/storytime` command supports several optional flags:
 | `--image-style`    | `-s`  | Art style for the generated storyboard image (e.g., "Dr. Seuss", "coloring book", "watercolor").         |
 | `--video`          |       | Generate a video instead of the final storyboard image.                                                |
 | `--video-model`    |       | Video generation model used with `--video`. Default: `google/veo-3.1-generate-001`                       |
+| `--video-duration` |       | Video duration in seconds, used with `--video`. Must be positive; supported values depend on the model. Omit to use the model's default. |
 | `--panels`         | `-p`  | Number of panels in the final storyboard image (integer, 2–12). Default: 4–5 panels.                     |
 | `--thinking-emoji` | `-e`  | Emoji shown while processing. Default: `thinking_face` 🤔                                                |
 
@@ -137,6 +138,7 @@ The provider must be able to reach the generated `/.well-known/workflow/v1/webho
 ```
 /storytime
 /storytime --video
+/storytime --video --video-duration 8
 /storytime --video -t Pirates -t Space
 /storytime --video --video-model klingai/kling-v3.0-t2v
 /storytime -t Pirates

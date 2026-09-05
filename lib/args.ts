@@ -14,6 +14,7 @@ export interface StorytimeArgs {
 	imageStyle: string;
 	video: boolean;
 	videoModel: string;
+	videoDuration?: number;
 	thinkingEmoji: string;
 	panels: number | null;
 }
@@ -26,6 +27,7 @@ export function parseStorytimeArgs(argv: string[]): StorytimeArgs {
 			"--image-style": String,
 			"--video": Boolean,
 			"--video-model": String,
+			"--video-duration": Number,
 			"--theme": [String],
 			"--thinking-emoji": String,
 			"--panels": Number,
@@ -64,6 +66,14 @@ export function parseStorytimeArgs(argv: string[]): StorytimeArgs {
 		panels = rawPanels;
 	}
 
+	const videoDuration = args["--video-duration"];
+	if (
+		videoDuration !== undefined &&
+		(!Number.isFinite(videoDuration) || videoDuration <= 0)
+	) {
+		throw new Error("--video-duration must be a positive number of seconds");
+	}
+
 	return {
 		themes,
 		model: args["--model"] || "anthropic/claude-haiku-4.5",
@@ -71,6 +81,7 @@ export function parseStorytimeArgs(argv: string[]): StorytimeArgs {
 		imageStyle: args["--image-style"] || "",
 		video: args["--video"] ?? false,
 		videoModel: args["--video-model"] || "google/veo-3.1-generate-001",
+		videoDuration,
 		thinkingEmoji: args["--thinking-emoji"] || "thinking_face",
 		panels,
 	};
