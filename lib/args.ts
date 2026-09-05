@@ -70,7 +70,7 @@ export function parseStorytimeArgs(argv: string[]): StorytimeArgs {
 		imageModel: args["--image-model"] || "google/gemini-3-pro-image",
 		imageStyle: args["--image-style"] || "",
 		video: args["--video"] ?? false,
-		videoModel: args["--video-model"] || "klingai/kling-v3.0-t2v",
+		videoModel: args["--video-model"] || "google/veo-3.1-generate-001",
 		thinkingEmoji: args["--thinking-emoji"] || "thinking_face",
 		panels,
 	};
