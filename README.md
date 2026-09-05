@@ -118,7 +118,7 @@ The `/storytime` command supports several optional flags:
 | `--theme`          | `-t`  | Story theme (can be specified multiple times). Defaults to 2 random themes if fewer than 2 are provided. |
 | `--model`          | `-m`  | Text generation model. Default: `meta/llama-4-scout`                                                     |
 | `--image-model`    | `-i`  | Image generation model. Default: `google/gemini-3-pro-image`                                             |
-| `--image-style`    | `-s`  | Art style for the generated storyboard image (e.g., "Dr. Seuss", "coloring book", "watercolor").         |
+| `--style`          | `-s`  | Visual style for the generated image or video (e.g., "watercolor", "pencil sketch", "claymation").       |
 | `--video`          |       | Generate a video instead of the final storyboard image.                                                |
 | `--video-model`    |       | Video generation model used with `--video`. Default: `google/veo-3.1-generate-001`                       |
 | `--video-duration` |       | Video duration in seconds, used with `--video`. Must be positive; supported values depend on the model. Omit to use the model's default. |
@@ -129,7 +129,7 @@ The `--model` and `--image-model` flags accept [AI Gateway model specifiers](htt
 
 The `--video-model` flag also accepts an AI Gateway model specifier. The model must support asynchronous video generation with webhooks. Video generation uses `experimental_generateVideo` from `@ai-sdk/workflow/video`: the workflow suspends while the video renders, then uploads the result to the Slack thread and broadcasts it to the channel. It uses the same `AI_GATEWAY_API_KEY`; no additional provider key is required.
 
-The `--image-model`, `--image-style`, and `--panels` options only affect image output, not video output. Without `--video`, the bot continues to generate a storyboard image.
+The `--style` option applies to both image and video output. The `--image-model` and `--panels` options only affect image output. Without `--video`, the bot continues to generate a storyboard image.
 
 The provider must be able to reach the generated `/.well-known/workflow/v1/webhook/...` URL. The installed Workflow SDK uses the deployment-specific `VERCEL_URL` hostname, not the project's custom domain. Deployment Protection on that hostname can reject Gateway callbacks with HTTP 401 even when the custom domain is public. Test video generation on a deployment where protection does not block the Workflow webhook endpoint.
 
@@ -139,6 +139,7 @@ The provider must be able to reach the generated `/.well-known/workflow/v1/webho
 /storytime
 /storytime --video
 /storytime --video --video-duration 8
+/storytime --video --style claymation
 /storytime --video -t Pirates -t Space
 /storytime --video --video-model klingai/kling-v3.0-t2v
 /storytime -t Pirates
@@ -170,7 +171,7 @@ pnpm tsx local.ts -t Pirates -t Space
 pnpm tsx local.ts -t Magic -m anthropic/claude-sonnet-4
 ```
 
-The local script accepts the same `--theme`, `--model`, `--image-model`, `--image-style`, and `--panels` flags as the Slack command.
+The local script accepts the same `--theme`, `--model`, `--image-model`, `--style` (including `-s`), and `--panels` flags as the Slack command.
 
 The local script does not support `--video`, which needs a running Workflow runtime and a publicly reachable webhook. Test video generation through the Slack command instead.
 

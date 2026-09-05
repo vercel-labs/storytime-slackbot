@@ -47,8 +47,16 @@ describe("storytime options", () => {
 			videoModel: "google/veo-3.1-generate-001",
 			videoDuration: undefined,
 			imageModel: "google/gemini-3-pro-image",
+			style: "",
 		});
 	});
+
+	it.each(["--style", "-s"])(
+		"parses %s as the shared style",
+		(flag) => {
+			expect(parseStorytimeArgs([flag, "pencil sketch"]).style).toBe("pencil sketch");
+		},
+	);
 
 	it("combines --video with themes and a model override", () => {
 		expect(
@@ -138,7 +146,7 @@ describe("storytime final output", () => {
 	});
 
 	it("keeps the default image generation and broadcast", async () => {
-		await run("-s watercolor -p 6");
+		await run("--style watercolor -p 6");
 		expect(generateStoryboardImage).toHaveBeenCalledWith(
 			"channel",
 			"thread",
@@ -187,6 +195,17 @@ describe("storytime final output", () => {
 				ts: "final",
 				text: `*Here is the final story:*\n\n> _${finalStory}_`,
 			});
+		},
+	);
+
+	it.each(["--style", "-s"])(
+		"applies %s to the video prompt",
+		async (flag) => {
+			await run(`--video ${flag} "pencil sketch"`);
+			const prompt = vi.mocked(generateVideo).mock.calls[0][0].prompt;
+			expect(prompt).toContain("visuals in the style of pencil sketch");
+			expect(prompt).toContain(finalStory);
+			expect(prompt).not.toContain("colorful illustrations");
 		},
 	);
 

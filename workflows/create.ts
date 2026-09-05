@@ -43,7 +43,7 @@ export async function storytime(slashCommand: URLSearchParams) {
 		themes,
 		model,
 		imageModel,
-		imageStyle,
+		style,
 		thinkingEmoji,
 		panels,
 		video,
@@ -167,7 +167,7 @@ export async function storytime(slashCommand: URLSearchParams) {
 			// This runs in workflow context so rendering suspends on the provider webhook.
 			const result = await generateVideo({
 				model: videoModel,
-				prompt: VIDEO_GEN_PROMPT(finalStory),
+				prompt: VIDEO_GEN_PROMPT(finalStory, style),
 				duration: videoDuration,
 				providerOptions: {
 					gateway: { transcripts: { enabled: true } },
@@ -188,7 +188,7 @@ export async function storytime(slashCommand: URLSearchParams) {
 			ts,
 			finalStory,
 			imageModel,
-			imageStyle,
+			style,
 			panels,
 		);
 	}

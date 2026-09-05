@@ -9,7 +9,7 @@ import { z } from "zod";
 import { parseStorytimeArgs } from "./lib/args.ts";
 import { IMAGE_GEN_PROMPT, SYSTEM_PROMPT } from "./lib/prompt.ts";
 
-const { themes, model, imageModel, imageStyle, panels, video } = parseStorytimeArgs(
+const { themes, model, imageModel, style, panels, video } = parseStorytimeArgs(
 	process.argv.slice(2),
 );
 if (video) {
@@ -25,7 +25,7 @@ const rl = readline.createInterface({
 console.log(`Themes: ${themes.join(", ")}`);
 console.log(`Model: ${model}`);
 console.log(`Image Model: ${imageModel}`);
-if (imageStyle) console.log(`Image Style: ${imageStyle}`);
+if (style) console.log(`Style: ${style}`);
 if (panels != null) console.log(`Panels: ${panels}`);
 
 const messages: ModelMessage[] = [
@@ -88,7 +88,7 @@ console.log(finalStory);
 
 const result = await generateText({
 	model: imageModel,
-	prompt: IMAGE_GEN_PROMPT(finalStory, imageStyle, panels),
+	prompt: IMAGE_GEN_PROMPT(finalStory, style, panels),
 	providerOptions: {
 		gateway: { transcripts: { enabled: true } },
 	},

@@ -99,11 +99,11 @@ Story:
 ${finalStory}`;
 };
 
-export const VIDEO_GEN_PROMPT = (finalStory: string) => `
+export const VIDEO_GEN_PROMPT = (finalStory: string, style = "") => `
 Create a short animated children's storybook video of the following story.
 Condense the key events into a clear visual beginning, middle, and ending.
 Keep the characters' appearance consistent throughout, with expressive movement,
-colorful illustrations, and smooth transitions between scenes.
+${style ? `visuals in the style of ${style}` : "colorful illustrations"}, and smooth transitions between scenes.
 Tell the story through animation rather than static comic panels or on-screen text.
 
 Story:

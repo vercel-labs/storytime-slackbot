@@ -8,7 +8,7 @@ export async function generateStoryboardImage(
 	threadTs: string,
 	finalStory: string,
 	imageModel: string,
-	imageStyle: string,
+	style: string,
 	panels: number | null = null,
 ): Promise<string | null> {
 	"use step";
@@ -16,7 +16,7 @@ export async function generateStoryboardImage(
 	console.time("Generating storyboard image");
 	const result = await generateText({
 		model: imageModel,
-		prompt: IMAGE_GEN_PROMPT(finalStory, imageStyle, panels),
+		prompt: IMAGE_GEN_PROMPT(finalStory, style, panels),
 		providerOptions: {
 			gateway: { transcripts: { enabled: true } },
 		},

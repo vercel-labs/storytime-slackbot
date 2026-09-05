@@ -11,7 +11,7 @@ export interface StorytimeArgs {
 	themes: string[];
 	model: string;
 	imageModel: string;
-	imageStyle: string;
+	style: string;
 	video: boolean;
 	videoModel: string;
 	videoDuration?: number;
@@ -24,7 +24,7 @@ export function parseStorytimeArgs(argv: string[]): StorytimeArgs {
 		{
 			"--model": String,
 			"--image-model": String,
-			"--image-style": String,
+			"--style": String,
 			"--video": Boolean,
 			"--video-model": String,
 			"--video-duration": Number,
@@ -35,7 +35,7 @@ export function parseStorytimeArgs(argv: string[]): StorytimeArgs {
 			// Aliases
 			"-m": "--model",
 			"-i": "--image-model",
-			"-s": "--image-style",
+			"-s": "--style",
 			"-t": "--theme",
 			"-e": "--thinking-emoji",
 			"-p": "--panels",
@@ -78,7 +78,7 @@ export function parseStorytimeArgs(argv: string[]): StorytimeArgs {
 		themes,
 		model: args["--model"] || "anthropic/claude-haiku-4.5",
 		imageModel: args["--image-model"] || "google/gemini-3-pro-image",
-		imageStyle: args["--image-style"] || "",
+		style: args["--style"] || "",
 		video: args["--video"] ?? false,
 		videoModel: args["--video-model"] || "google/veo-3.1-generate-001",
 		videoDuration,
