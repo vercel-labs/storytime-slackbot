@@ -12,6 +12,8 @@ export interface StorytimeArgs {
 	model: string;
 	imageModel: string;
 	imageStyle: string;
+	video: boolean;
+	videoModel: string;
 	thinkingEmoji: string;
 	panels: number | null;
 }
@@ -22,6 +24,8 @@ export function parseStorytimeArgs(argv: string[]): StorytimeArgs {
 			"--model": String,
 			"--image-model": String,
 			"--image-style": String,
+			"--video": Boolean,
+			"--video-model": String,
 			"--theme": [String],
 			"--thinking-emoji": String,
 			"--panels": Number,
@@ -65,6 +69,8 @@ export function parseStorytimeArgs(argv: string[]): StorytimeArgs {
 		model: args["--model"] || "anthropic/claude-haiku-4.5",
 		imageModel: args["--image-model"] || "google/gemini-3-pro-image",
 		imageStyle: args["--image-style"] || "",
+		video: args["--video"] ?? false,
+		videoModel: args["--video-model"] || "klingai/kling-v3.0-t2v",
 		thinkingEmoji: args["--thinking-emoji"] || "thinking_face",
 		panels,
 	};

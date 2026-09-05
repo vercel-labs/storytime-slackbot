@@ -9,14 +9,19 @@ import { z } from "zod";
 import { parseStorytimeArgs } from "./lib/args.ts";
 import { IMAGE_GEN_PROMPT, SYSTEM_PROMPT } from "./lib/prompt.ts";
 
+const { themes, model, imageModel, imageStyle, panels, video } = parseStorytimeArgs(
+	process.argv.slice(2),
+);
+if (video) {
+	throw new Error(
+		"--video requires a Workflow runtime. Use /storytime --video in Slack.",
+	);
+}
+
 const rl = readline.createInterface({
 	input: process.stdin,
 	output: process.stdout,
 });
-
-const { themes, model, imageModel, imageStyle, panels } = parseStorytimeArgs(
-	process.argv.slice(2),
-);
 console.log(`Themes: ${themes.join(", ")}`);
 console.log(`Model: ${model}`);
 console.log(`Image Model: ${imageModel}`);

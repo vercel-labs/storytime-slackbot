@@ -98,3 +98,13 @@ Please ensure that the text is correct, legible, and using the correct names.
 Story:
 ${finalStory}`;
 };
+
+export const VIDEO_GEN_PROMPT = (finalStory: string) => `
+Create a short animated children's storybook video of the following story.
+Condense the key events into a clear visual beginning, middle, and ending.
+Keep the characters' appearance consistent throughout, with expressive movement,
+colorful illustrations, and smooth transitions between scenes.
+Tell the story through animation rather than static comic panels or on-screen text.
+
+Story:
+${finalStory}`;

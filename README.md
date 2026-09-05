@@ -4,13 +4,13 @@
 
 An interactive AI-powered Slack bot that creates collaborative children's stories with your team. Users can start a story with a slash command, and the bot will generate an introduction based on random themes.
 
-Team members can then contribute to the story in a thread, with the AI helping to guide the narrative to completion and generating a beautiful storyboard image at the end.
+Team members can then contribute to the story in a thread, with the AI helping to guide the narrative to completion and generating a storyboard image at the end. Use `/storytime --video` to generate an animated video instead.
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 22.12+
 - pnpm (recommended) or npm
 - A Slack workspace where you can install apps
 - Vercel account for deployment
@@ -101,7 +101,7 @@ After deployment, update your Slack app configuration:
 4. Reply in the thread to add your part of the story
 5. The bot will respond with encouragement and continue the narrative
 6. After 2-3 iterations, the bot will conclude the story
-7. A beautiful storyboard image will be generated and shared
+7. A storyboard image (or a video when using `--video`) will be generated and shared
 
 ![Storyboard Example](./public/storyboard.png)
 
@@ -117,15 +117,26 @@ The `/storytime` command supports several optional flags:
 | `--model`          | `-m`  | Text generation model. Default: `meta/llama-4-scout`                                                     |
 | `--image-model`    | `-i`  | Image generation model. Default: `google/gemini-3-pro-image`                                             |
 | `--image-style`    | `-s`  | Art style for the generated storyboard image (e.g., "Dr. Seuss", "coloring book", "watercolor").         |
+| `--video`          |       | Generate a video instead of the final storyboard image.                                                |
+| `--video-model`    |       | Video generation model used with `--video`. Default: `klingai/kling-v3.0-t2v`                            |
 | `--panels`         | `-p`  | Number of panels in the final storyboard image (integer, 2–12). Default: 4–5 panels.                     |
 | `--thinking-emoji` | `-e`  | Emoji shown while processing. Default: `thinking_face` 🤔                                                |
 
 The `--model` and `--image-model` flags accept [AI Gateway model specifiers](https://vercel.com/ai-gateway/models) (e.g., `anthropic/claude-sonnet-4`, `openai/gpt-4.1-mini`, `google/gemini-2.5-flash`).
 
+The `--video-model` flag also accepts an AI Gateway model specifier. The model must support asynchronous video generation with webhooks. Video generation uses `experimental_generateVideo` from `@ai-sdk/workflow/video`: the workflow suspends while the video renders, then uploads the result to the Slack thread and broadcasts it to the channel. It uses the same `AI_GATEWAY_API_KEY`; no additional provider key is required.
+
+The `--image-model`, `--image-style`, and `--panels` options only affect image output, not video output. Without `--video`, the bot continues to generate a storyboard image.
+
+The provider must be able to reach the generated `/.well-known/workflow/v1/webhook/...` URL. Test video generation on a public deployment where deployment protection does not block the Workflow webhook endpoint.
+
 **Examples:**
 
 ```
 /storytime
+/storytime --video
+/storytime --video -t Pirates -t Space
+/storytime --video --video-model klingai/kling-v3.0-t2v
 /storytime -t Pirates
 /storytime -t Pirates -t Space
 /storytime -t Magic -t Dragons -t Friendship
@@ -156,6 +167,10 @@ pnpm tsx local.ts -t Magic -m anthropic/claude-sonnet-4
 ```
 
 The local script accepts the same `--theme`, `--model`, `--image-model`, `--image-style`, and `--panels` flags as the Slack command.
+
+The local script does not support `--video`, which needs a running Workflow runtime and a publicly reachable webhook. Test video generation through the Slack command instead.
+
+Run the automated tests with `pnpm test`.
 
 ## Resources
 

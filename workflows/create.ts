@@ -1,9 +1,10 @@
+import { experimental_generateVideo as generateVideo } from "@ai-sdk/workflow/video";
 import { stringToArgv } from "@tootallnate/string-argv";
 import type { ModelMessage } from "ai";
 import { defineHook, FatalError } from "workflow";
 import { z } from "zod";
 import { parseStorytimeArgs } from "../lib/args";
-import { SYSTEM_PROMPT } from "../lib/prompt";
+import { SYSTEM_PROMPT, VIDEO_GEN_PROMPT } from "../lib/prompt";
 
 // Look ma no queues or kv!
 
@@ -19,6 +20,7 @@ import {
 	removeReactionFromMessage,
 	updateSlackMessage,
 } from "./steps/post-slack-message";
+import { uploadStoryVideo } from "./steps/upload-story-video";
 
 const slackMessageHookSchema = z.object({
 	text: z.string(),
@@ -37,8 +39,16 @@ export async function storytime(slashCommand: URLSearchParams) {
 	}
 
 	const argv = stringToArgv(slashCommand.get("text") || "");
-	const { themes, model, imageModel, imageStyle, thinkingEmoji, panels } =
-		parseStorytimeArgs(argv);
+	const {
+		themes,
+		model,
+		imageModel,
+		imageStyle,
+		thinkingEmoji,
+		panels,
+		video,
+		videoModel,
+	} = parseStorytimeArgs(argv);
 
 	// ...including local state like the entire message history
 	let finalStory = "";
@@ -142,32 +152,50 @@ export async function storytime(slashCommand: URLSearchParams) {
 		.map((line) => `> ${line ? `_${line}_` : ""}`)
 		.join("\n")}`;
 
-	// Post the final story and generate the storyboard image
-	const [{ ts: finalTs }, fileId] = await Promise.all([
-		postSlackMessage({
-			channel: channelId,
-			text: `${finalText}\n\n_Generating storyboard image…_ :${thinkingEmoji}:`,
-			thread_ts: ts,
-			reply_broadcast: true,
-		}),
-		generateStoryboardImage(
+	const outputName = video ? "story video" : "storyboard image";
+	const { ts: finalTs } = await postSlackMessage({
+		channel: channelId,
+		text: `${finalText}\n\n_Generating ${outputName}…_ :${thinkingEmoji}:`,
+		thread_ts: ts,
+		reply_broadcast: true,
+	});
+
+	let fileId: string | null;
+	if (video) {
+		try {
+			// This runs in workflow context so rendering suspends on the provider webhook.
+			const result = await generateVideo({
+				model: videoModel,
+				prompt: VIDEO_GEN_PROMPT(finalStory),
+			});
+			fileId = await uploadStoryVideo(channelId, ts, result.videos[0]);
+		} catch (error) {
+			await updateSlackMessage({
+				channel: channelId,
+				ts: finalTs,
+				text: `${finalText}\n\n_The story video could not be generated or uploaded. Please try a new session._`,
+			});
+			throw error;
+		}
+	} else {
+		fileId = await generateStoryboardImage(
 			channelId,
 			ts,
 			finalStory,
 			imageModel,
 			imageStyle,
 			panels,
-		),
-	]);
+		);
+	}
 
-	// Update the final story message to remove the "generating storyboard image" message
+	// Remove the generation status once the file has been uploaded.
 	await updateSlackMessage({
 		channel: channelId,
 		ts: finalTs,
 		text: finalText,
 	});
 
-	// Broadcast the storyboard image to the thread (if image generation succeeded)
+	// Slack's file broadcast works for both images and videos.
 	if (fileId) {
 		await broadcastStoryboardImage(channelId, ts, fileId);
 	}
