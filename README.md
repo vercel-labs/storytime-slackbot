@@ -118,7 +118,7 @@ After deployment, update your Slack app configuration:
 
 ### Command Options
 
-The `/storytime` command supports optional flags to pre-fill the configuration modal. Flags do not skip the modal; click **Start Story** to confirm. Image and video settings are shown together, but only the selected output mode's settings are used.
+The `/storytime` command supports optional flags to pre-fill the configuration modal. Flags do not skip the modal; click **Start Story** to confirm. Selecting Image or Video shows only that mode's settings. Switching modes preserves entered values, and only the selected mode's settings are validated and used.
 
 | Flag               | Alias | Description                                                                                              |
 | ------------------ | ----- | -------------------------------------------------------------------------------------------------------- |

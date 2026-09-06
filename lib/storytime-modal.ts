@@ -12,6 +12,14 @@ export const storytimeModalContextSchema = z.object({
 	channelId: z.string().min(1),
 	userId: z.string().min(1),
 	teamId: z.string().min(1),
+	media: z
+		.object({
+			image_model: z.string(),
+			panels: z.string(),
+			video_model: z.string(),
+			video_duration: z.string(),
+		})
+		.optional(),
 });
 export const storytimeModalStateSchema = z.record(
 	z.string(),
@@ -47,7 +55,7 @@ const textInput = (
 		type: "plain_text_input" as const,
 		action_id: "value",
 		multiline,
-		max_length: 3000,
+		max_length: id === "image_model" || id === "video_model" ? 200 : 3000,
 		...(value ? { initial_value: value } : {}),
 	},
 });
@@ -55,7 +63,37 @@ const textInput = (
 export function buildStorytimeModal(
 	args: StorytimeArgs,
 	context: z.infer<typeof storytimeModalContextSchema>,
+	values: z.infer<typeof storytimeModalStateSchema> = {},
 ): Extract<ViewsOpenArguments["view"], { type: "modal" }> {
+	const value = (id: string, fallback: string) =>
+		id in values ? (values[id]?.value?.value ?? "") : fallback;
+	const video =
+		(values.output?.value?.selected_option?.value ??
+			(args.video ? "video" : "image")) === "video";
+	// Only mode-specific fields need storage: shared inputs stay in Slack's view state.
+	const media = {
+		image_model: value(
+			"image_model",
+			context.media?.image_model ?? args.imageModel,
+		),
+		panels:
+			values.panels?.value?.selected_option?.value ??
+			context.media?.panels ??
+			String(args.panels ?? "auto"),
+		video_model: value(
+			"video_model",
+			context.media?.video_model ?? args.videoModel,
+		),
+		video_duration: value(
+			"video_duration",
+			context.media?.video_duration ?? String(args.videoDuration ?? ""),
+		),
+	};
+	const recordTranscripts = values.transcripts
+		? (values.transcripts.value?.selected_options?.some(
+				(item) => item.value === "enabled",
+			) ?? false)
+		: args.transcripts;
 	const outputs = [
 		option("Storyboard image", "image"),
 		option("Video", "video"),
@@ -67,10 +105,55 @@ export function buildStorytimeModal(
 		),
 	];
 	const transcripts = option("Record Gateway request transcripts", "enabled");
+	const mediaBlocks: ViewsOpenArguments["view"]["blocks"] = video
+		? [
+				{ type: "header", text: text("Video settings") },
+				textInput(
+					"video_model",
+					"Video model",
+					media.video_model,
+					false,
+					"Must support asynchronous generation with webhooks.",
+				),
+				{
+					type: "input",
+					block_id: "video_duration",
+					label: text("Video duration (seconds)"),
+					optional: true,
+					hint: text(
+						"Leave blank for the model's default. Supported durations depend on the model.",
+					),
+					element: {
+						type: "number_input",
+						action_id: "value",
+						is_decimal_allowed: true,
+						min_value: "0",
+						...(media.video_duration
+							? { initial_value: media.video_duration }
+							: {}),
+					},
+				},
+			]
+		: [
+				{ type: "header", text: text("Image settings") },
+				textInput("image_model", "Image model", media.image_model),
+				{
+					type: "input",
+					block_id: "panels",
+					label: text("Storyboard panels"),
+					element: {
+						type: "static_select",
+						action_id: "value",
+						options: panels,
+						initial_option:
+							panels.find((item) => item.value === media.panels) ?? panels[0],
+					},
+				},
+			];
 	return {
 		type: "modal",
 		callback_id: STORYTIME_MODAL_CALLBACK,
-		private_metadata: JSON.stringify(context),
+		private_metadata: JSON.stringify({ ...context, media }),
 		title: text("Storytime"),
 		submit: text("Start Story"),
 		close: text("Cancel"),
@@ -85,18 +168,19 @@ export function buildStorytimeModal(
 			{
 				type: "input",
 				block_id: "output",
+				dispatch_action: true,
 				label: text("Final output"),
 				element: {
 					type: "radio_buttons",
 					action_id: "value",
 					options: outputs,
-					initial_option: outputs[args.video ? 1 : 0],
+					initial_option: outputs[video ? 1 : 0],
 				},
 			},
 			textInput(
 				"themes",
 				"Themes",
-				args.themes.join("\n"),
+				value("themes", args.themes.join("\n")),
 				true,
 				"One theme per line. Random themes fill any missing slots up to two.",
 				true,
@@ -104,69 +188,23 @@ export function buildStorytimeModal(
 			textInput(
 				"style",
 				"Visual style",
-				args.style,
+				value("style", args.style),
 				true,
 				"Applies to both modes. For example: watercolor, pencil sketch, or claymation. Leave blank for the default storybook style.",
 			),
 			textInput(
 				"model",
 				"Story model",
-				args.model,
+				value("model", args.model),
 				false,
 				"An AI Gateway model ID.",
 			),
-			{ type: "header", text: text("Image settings") },
-			textInput(
-				"image_model",
-				"Image model",
-				args.imageModel,
-				false,
-				"Used only for storyboard image output.",
-			),
-			{
-				type: "input",
-				block_id: "panels",
-				label: text("Storyboard panels"),
-				element: {
-					type: "static_select",
-					action_id: "value",
-					options: panels,
-					initial_option:
-						panels.find((item) => item.value === String(args.panels)) ??
-						panels[0],
-				},
-			},
-			{ type: "header", text: text("Video settings") },
-			textInput(
-				"video_model",
-				"Video model",
-				args.videoModel,
-				false,
-				"Used only for video output. Must support asynchronous generation with webhooks.",
-			),
-			{
-				type: "input",
-				block_id: "video_duration",
-				label: text("Video duration (seconds)"),
-				optional: true,
-				hint: text(
-					"Leave blank for the model's default. Supported durations depend on the model.",
-				),
-				element: {
-					type: "number_input",
-					action_id: "value",
-					is_decimal_allowed: true,
-					min_value: "0",
-					...(args.videoDuration !== undefined
-						? { initial_value: String(args.videoDuration) }
-						: {}),
-				},
-			},
+			...mediaBlocks,
 			{ type: "header", text: text("Session settings") },
 			textInput(
 				"thinking_emoji",
 				"Thinking emoji",
-				args.thinkingEmoji,
+				value("thinking_emoji", args.thinkingEmoji),
 				false,
 				"Slack emoji name without colons, such as thinking_face.",
 			),
@@ -182,7 +220,7 @@ export function buildStorytimeModal(
 					type: "checkboxes",
 					action_id: "value",
 					options: [transcripts],
-					...(args.transcripts ? { initial_options: [transcripts] } : {}),
+					...(recordTranscripts ? { initial_options: [transcripts] } : {}),
 				},
 			},
 		],
@@ -203,8 +241,9 @@ export function parseStorytimeModal(
 	if (output === "video") argv.push("--video");
 	for (const [id, flag] of [
 		["model", "--model"],
-		["image_model", "--image-model"],
-		["video_model", "--video-model"],
+		output === "video"
+			? ["video_model", "--video-model"]
+			: ["image_model", "--image-model"],
 		["thinking_emoji", "--thinking-emoji"],
 	]) {
 		if (!value(id)) errors[id] = "Enter a value.";
@@ -218,11 +257,13 @@ export function parseStorytimeModal(
 		argv.push(`--theme=${theme}`);
 	}
 	argv.push(`--style=${value("style")}`);
-	const panels = values.panels?.value?.selected_option?.value;
-	if (!panels) errors.panels = "Choose the number of panels.";
-	else if (panels !== "auto") argv.push(`--panels=${panels}`);
-	if (value("video_duration"))
+	if (output === "image") {
+		const panels = values.panels?.value?.selected_option?.value;
+		if (!panels) errors.panels = "Choose the number of panels.";
+		else if (panels !== "auto") argv.push(`--panels=${panels}`);
+	} else if (output === "video" && value("video_duration")) {
 		argv.push(`--video-duration=${value("video_duration")}`);
+	}
 	if (
 		values.transcripts?.value?.selected_options?.some(
 			(item) => item.value === "enabled",

@@ -21,7 +21,7 @@ vi.mock("@/workflows/create", () => ({
 	slackMessageHook: { resume: vi.fn() },
 }));
 vi.mock("@/lib/slack", () => ({
-	modalSlack: { views: { open: vi.fn() } },
+	modalSlack: { views: { open: vi.fn(), update: vi.fn() } },
 	slack: { chat: { postEphemeral: vi.fn() } },
 }));
 
@@ -57,17 +57,22 @@ function commandRequest(text = "") {
 	);
 }
 
-function submission() {
-	return {
+function submission(video = false) {
+	const payload = {
 		type: "view_submission",
 		user: { id: context.userId },
 		team: { id: context.teamId },
 		view: {
+			id: "V123",
+			hash: "view-hash",
 			callback_id: STORYTIME_MODAL_CALLBACK,
-			private_metadata: JSON.stringify(context),
+			private_metadata: buildStorytimeModal({ ...defaults, video }, context)
+				.private_metadata!,
 			state: {
 				values: {
-					output: { value: { selected_option: { value: "image" } } },
+					output: {
+						value: { selected_option: { value: video ? "video" : "image" } },
+					},
 					themes: { value: { value: defaults.themes.join("\n") } },
 					style: { value: { value: "" } },
 					model: { value: { value: defaults.model } },
@@ -82,6 +87,26 @@ function submission() {
 				},
 			},
 		},
+	};
+	for (const field of video
+		? ["image_model", "panels"]
+		: ["video_model", "video_duration"]) {
+		Reflect.deleteProperty(payload.view.state.values, field);
+	}
+	return payload;
+}
+
+function outputChange(payload: ReturnType<typeof submission>, output: string) {
+	return {
+		...payload,
+		type: "block_actions",
+		actions: [
+			{
+				block_id: "output",
+				action_id: "value",
+				selected_option: { value: output },
+			},
+		],
 	};
 }
 
@@ -98,6 +123,7 @@ beforeEach(() => {
 		background.push(promise);
 	});
 	vi.mocked(modalSlack.views.open).mockResolvedValue({ ok: true });
+	vi.mocked(modalSlack.views.update).mockResolvedValue({ ok: true });
 	vi.mocked(start).mockResolvedValue({ runId: "run" } as Awaited<
 		ReturnType<typeof start>
 	>);
@@ -108,12 +134,11 @@ afterEach(() => vi.unstubAllEnvs());
 describe("configuration modal", () => {
 	it("preselects the defaults for every option", () => {
 		const view = buildStorytimeModal(defaults, context);
-		expect(JSON.parse(view.private_metadata!)).toEqual(context);
+		expect(JSON.parse(view.private_metadata!)).toMatchObject(context);
 		for (const [id, initialValue] of [
 			["themes", "Pirates\nSpace"],
 			["model", defaults.model],
 			["image_model", defaults.imageModel],
-			["video_model", defaults.videoModel],
 			["thinking_emoji", "thinking_face"],
 		]) {
 			expect(view.blocks.find((block) => block.block_id === id)).toMatchObject({
@@ -122,11 +147,14 @@ describe("configuration modal", () => {
 		}
 		expect(
 			view.blocks.find((block) => block.block_id === "output"),
-		).toMatchObject({ element: { initial_option: { value: "image" } } });
+		).toMatchObject({
+			dispatch_action: true,
+			element: { initial_option: { value: "image" } },
+		});
 		expect(
 			view.blocks.find((block) => block.block_id === "panels"),
 		).toMatchObject({ element: { initial_option: { value: "auto" } } });
-		for (const id of ["style", "video_duration"]) {
+		for (const id of ["style"]) {
 			expect(view.blocks.find((block) => block.block_id === id)).toMatchObject({
 				element: expect.not.objectContaining({
 					initial_value: expect.anything(),
@@ -142,6 +170,35 @@ describe("configuration modal", () => {
 		});
 		expect(parseStorytimeModal(submission().view.state.values)).toEqual({
 			args: defaults,
+		});
+		expect(
+			view.blocks.some(
+				(block) =>
+					block.block_id === "video_model" ||
+					block.block_id === "video_duration",
+			),
+		).toBe(false);
+	});
+
+	it("shows only video settings in video mode", () => {
+		const view = buildStorytimeModal(
+			{ ...defaults, video: true, videoDuration: 8 },
+			context,
+		);
+		expect(
+			view.blocks.find((block) => block.block_id === "video_model"),
+		).toMatchObject({ element: { initial_value: defaults.videoModel } });
+		expect(
+			view.blocks.find((block) => block.block_id === "video_duration"),
+		).toMatchObject({ element: { initial_value: "8" } });
+		expect(
+			view.blocks.some(
+				(block) =>
+					block.block_id === "image_model" || block.block_id === "panels",
+			),
+		).toBe(false);
+		expect(parseStorytimeModal(submission(true).view.state.values)).toEqual({
+			args: { ...defaults, video: true },
 		});
 	});
 
@@ -238,7 +295,7 @@ describe("modal submission", () => {
 	});
 
 	it("passes edited video configuration through", async () => {
-		const payload = submission();
+		const payload = submission(true);
 		const values = payload.view.state.values;
 		values.output.value.selected_option.value = "video";
 		values.video_model.value.value = "custom/video-model";
@@ -262,7 +319,7 @@ describe("modal submission", () => {
 	it.each(["0", "-1", "NaN"])(
 		"shows a duration error for %s without starting",
 		async (value) => {
-			const payload = submission();
+			const payload = submission(true);
 			payload.view.state.values.video_duration.value.value = value;
 			const response = await interact(interactionRequest(payload));
 			expect(await response.json()).toMatchObject({
@@ -301,9 +358,14 @@ describe("modal submission", () => {
 	});
 
 	it("accepts org-installed submissions whose team is null", async () => {
-		const response = await interact(interactionRequest({ ...submission(), team: null }));
+		const response = await interact(
+			interactionRequest({ ...submission(), team: null }),
+		);
 		expect(response.status).toBe(200);
-		expect(start).toHaveBeenCalledWith(storytime, [context.channelId, defaults]);
+		expect(start).toHaveBeenCalledWith(storytime, [
+			context.channelId,
+			defaults,
+		]);
 	});
 
 	it("rejects a mismatched workspace when Slack supplies one", async () => {
@@ -333,6 +395,134 @@ describe("modal submission", () => {
 				user: context.userId,
 			}),
 		);
+	});
+});
+
+describe("output selection", () => {
+	it("updates the view in place and restores edited values when switching back", async () => {
+		const image = submission();
+		image.view.state.values.image_model.value.value = "custom/image";
+		image.view.state.values.panels.value.selected_option.value = "8";
+		image.view.state.values.style.value.value = "watercolor";
+		const response = await interact(
+			interactionRequest(outputChange(image, "video")),
+		);
+		expect(response.status).toBe(200);
+		await Promise.all(background);
+		const update = vi.mocked(modalSlack.views.update).mock.calls[0][0];
+		expect(update).toMatchObject({ view_id: "V123", hash: "view-hash" });
+		expect(
+			update.view.blocks.some((block) => block.block_id === "image_model"),
+		).toBe(false);
+		expect(
+			update.view.blocks.find((block) => block.block_id === "video_model"),
+		).toMatchObject({ element: { initial_value: defaults.videoModel } });
+		expect(
+			update.view.blocks.find((block) => block.block_id === "style"),
+		).toMatchObject({ element: { initial_value: "watercolor" } });
+
+		const video = submission(true);
+		video.view.private_metadata = update.view.private_metadata!;
+		video.view.hash = "new-hash";
+		video.view.state.values.video_model.value.value = "custom/video";
+		video.view.state.values.video_duration.value.value = "12";
+		await interact(interactionRequest(outputChange(video, "image")));
+		await Promise.all(background);
+		const restored = vi.mocked(modalSlack.views.update).mock.calls[1][0].view;
+		expect(
+			restored.blocks.find((block) => block.block_id === "image_model"),
+		).toMatchObject({ element: { initial_value: "custom/image" } });
+		expect(
+			restored.blocks.find((block) => block.block_id === "panels"),
+		).toMatchObject({ element: { initial_option: { value: "8" } } });
+		expect(
+			restored.blocks.some((block) => block.block_id === "video_model"),
+		).toBe(false);
+		image.view.private_metadata = restored.private_metadata!;
+		await interact(interactionRequest(outputChange(image, "video")));
+		await Promise.all(background);
+		const restoredVideo = vi.mocked(modalSlack.views.update).mock.calls[2][0]
+			.view;
+		expect(
+			restoredVideo.blocks.find((block) => block.block_id === "video_model"),
+		).toMatchObject({ element: { initial_value: "custom/video" } });
+		expect(
+			restoredVideo.blocks.find((block) => block.block_id === "video_duration"),
+		).toMatchObject({ element: { initial_value: "12" } });
+		expect(start).not.toHaveBeenCalled();
+	});
+
+	it("preserves cleared shared fields and doesn't store them in metadata", async () => {
+		const image = submission();
+		image.view.state.values.themes.value.value = "";
+		image.view.state.values.style.value.value = "";
+		await interact(interactionRequest(outputChange(image, "video")));
+		await Promise.all(background);
+		const view = vi.mocked(modalSlack.views.update).mock.calls[0][0].view;
+		for (const id of ["themes", "style"]) {
+			expect(view.blocks.find((block) => block.block_id === id)).toMatchObject({
+				element: expect.not.objectContaining({
+					initial_value: expect.anything(),
+				}),
+			});
+		}
+		expect(JSON.parse(view.private_metadata!)).not.toHaveProperty("themes");
+	});
+
+	it("lets users leave unfinished video fields and submit an image", async () => {
+		const video = submission(true);
+		video.view.state.values.video_model.value.value = "";
+		video.view.state.values.video_duration.value.value = "0";
+		await interact(interactionRequest(outputChange(video, "image")));
+		await Promise.all(background);
+		const image = submission();
+		image.view.private_metadata = vi.mocked(
+			modalSlack.views.update,
+		).mock.calls[0][0].view.private_metadata!;
+		expect((await interact(interactionRequest(image))).status).toBe(200);
+		expect(start).toHaveBeenCalledWith(storytime, [
+			context.channelId,
+			defaults,
+		]);
+		await interact(interactionRequest(outputChange(image, "video")));
+		await Promise.all(background);
+		const restored = vi.mocked(modalSlack.views.update).mock.calls[1][0].view;
+		expect(
+			restored.blocks.find((block) => block.block_id === "video_model"),
+		).toMatchObject({
+			element: expect.not.objectContaining({
+				initial_value: expect.anything(),
+			}),
+		});
+		expect(
+			restored.blocks.find((block) => block.block_id === "video_duration"),
+		).toMatchObject({ element: { initial_value: "0" } });
+	});
+
+	it("shows the newly selected fields if submitted before the view update arrives", async () => {
+		const payload = submission();
+		payload.view.state.values.output.value.selected_option.value = "video";
+		const response = await interact(interactionRequest(payload));
+		const body = await response.json();
+		expect(body.response_action).toBe("update");
+		expect(body.view.blocks).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({ block_id: "video_model" }),
+			]),
+		);
+		expect(start).not.toHaveBeenCalled();
+	});
+
+	it("acknowledges failed or stale updates without starting a story", async () => {
+		vi.mocked(modalSlack.views.update).mockRejectedValue(
+			new Error("hash_conflict"),
+		);
+		expect(
+			(await interact(interactionRequest(outputChange(submission(), "video"))))
+				.status,
+		).toBe(200);
+		await expect(Promise.all(background)).resolves.toBeDefined();
+		expect(start).not.toHaveBeenCalled();
 	});
 });
 
