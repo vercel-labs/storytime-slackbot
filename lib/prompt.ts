@@ -99,12 +99,15 @@ Story:
 ${finalStory}`;
 };
 
-export const VIDEO_GEN_PROMPT = (finalStory: string, style = "") => `
-Create a short animated children's storybook video of the following story.
-Condense the key events into a clear visual beginning, middle, and ending.
+export const VIDEO_GEN_PROMPT = (videoScript: string, style = "") => `
+Create a complete animated children's storybook video following the timed script below.
+Follow its time slots so the setup, main action, and resolution all fit inside the clip.
+Show the resolution before the final hold; never end mid-story or mid-sentence.
+Use the final hold only for the resolved ending image, with no new action or speech.
+Do not add scenes, dialogue, or narration beyond the script or turn it into a trailer.
 Keep the characters' appearance consistent throughout, with expressive movement,
 ${style ? `visuals in the style of ${style}` : "colorful illustrations"}, and smooth transitions between scenes.
 Tell the story through animation rather than static comic panels or on-screen text.
 
-Story:
-${finalStory}`;
+Timed script:
+${videoScript}`;

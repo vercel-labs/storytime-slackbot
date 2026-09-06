@@ -9,6 +9,7 @@ import { SYSTEM_PROMPT, VIDEO_GEN_PROMPT } from "../lib/prompt";
 
 // Steps
 import { generateStoryPiece } from "./steps/generate-story-piece";
+import { generateVideoScript } from "./steps/generate-video-script";
 import {
 	broadcastStoryboardImage,
 	generateStoryboardImage,
@@ -159,10 +160,17 @@ export async function storytime(channelId: string, options: StorytimeArgs) {
 	let fileId: string | null;
 	if (video) {
 		try {
+			const script = await generateVideoScript(
+				finalStory,
+				model,
+				style,
+				videoDuration,
+				transcripts,
+			);
 			// This runs in workflow context so rendering suspends on the provider webhook.
 			const result = await generateVideo({
 				model: videoModel,
-				prompt: VIDEO_GEN_PROMPT(finalStory, style),
+				prompt: VIDEO_GEN_PROMPT(script, style),
 				duration: videoDuration,
 				providerOptions: transcripts
 					? { gateway: { transcripts: { enabled: true } } }

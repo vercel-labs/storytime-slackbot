@@ -5,6 +5,7 @@ import { parseStorytimeArgs } from "../lib/args";
 import { SYSTEM_PROMPT, VIDEO_GEN_PROMPT } from "../lib/prompt";
 import { storytime } from "./create";
 import { generateStoryPiece } from "./steps/generate-story-piece";
+import { generateVideoScript } from "./steps/generate-video-script";
 import {
 	broadcastStoryboardImage,
 	generateStoryboardImage,
@@ -28,6 +29,9 @@ vi.mock("workflow", () => ({
 }));
 vi.mock("./steps/generate-story-piece", () => ({
 	generateStoryPiece: vi.fn(),
+}));
+vi.mock("./steps/generate-video-script", () => ({
+	generateVideoScript: vi.fn(),
 }));
 vi.mock("./steps/generate-storyboard-image", () => ({
 	generateStoryboardImage: vi.fn(),
@@ -53,12 +57,11 @@ describe("storytime options", () => {
 		});
 	});
 
-	it.each(["--style", "-s"])(
-		"parses %s as the shared style",
-		(flag) => {
-			expect(parseStorytimeArgs([flag, "pencil sketch"]).style).toBe("pencil sketch");
-		},
-	);
+	it.each(["--style", "-s"])("parses %s as the shared style", (flag) => {
+		expect(parseStorytimeArgs([flag, "pencil sketch"]).style).toBe(
+			"pencil sketch",
+		);
+	});
 
 	it("opts into transcripts without enabling video", () => {
 		expect(parseStorytimeArgs(["--transcripts"])).toMatchObject({
@@ -116,6 +119,8 @@ describe("storytime options", () => {
 
 describe("storytime final output", () => {
 	const finalStory = "The pirates found their treasure among the stars.";
+	const script =
+		"A timed script ending with the pirates celebrating their treasure.";
 	const video = {
 		type: "url" as const,
 		url: "https://example.com/story.mp4",
@@ -141,6 +146,7 @@ describe("storytime final output", () => {
 				story: finalStory,
 			});
 		vi.mocked(generateStoryboardImage).mockResolvedValue("image-file");
+		vi.mocked(generateVideoScript).mockResolvedValue(script);
 		vi.mocked(generateVideo).mockResolvedValue({
 			status: "completed",
 			videos: [video],
@@ -169,6 +175,7 @@ describe("storytime final output", () => {
 			expect(call[3]).toBe(false);
 		}
 		expect(generateVideo).not.toHaveBeenCalled();
+		expect(generateVideoScript).not.toHaveBeenCalled();
 		expect(uploadStoryVideo).not.toHaveBeenCalled();
 		expect(broadcastStoryboardImage).toHaveBeenCalledWith(
 			"channel",
@@ -181,9 +188,16 @@ describe("storytime final output", () => {
 		"generates only a video with --video%s",
 		async (override) => {
 			await run(`--video${override}`);
+			expect(generateVideoScript).toHaveBeenCalledWith(
+				finalStory,
+				"anthropic/claude-haiku-4.5",
+				"",
+				undefined,
+				false,
+			);
 			expect(generateVideo).toHaveBeenCalledWith({
 				model: override ? "custom/video" : "google/veo-3.1-generate-001",
-				prompt: VIDEO_GEN_PROMPT(finalStory),
+				prompt: VIDEO_GEN_PROMPT(script),
 				duration: undefined,
 				providerOptions: undefined,
 			});
@@ -218,6 +232,13 @@ describe("storytime final output", () => {
 				expect(call[3]).toBe(true);
 			}
 			if (videoFlag) {
+				expect(generateVideoScript).toHaveBeenCalledWith(
+					finalStory,
+					"anthropic/claude-haiku-4.5",
+					"",
+					undefined,
+					true,
+				);
 				expect(generateVideo).toHaveBeenCalledWith(
 					expect.objectContaining({
 						providerOptions: { gateway: { transcripts: { enabled: true } } },
@@ -237,21 +258,26 @@ describe("storytime final output", () => {
 		},
 	);
 
-	it.each(["--style", "-s"])(
-		"applies %s to the video prompt",
-		async (flag) => {
-			await run(`--video ${flag} "pencil sketch"`);
-			const prompt = vi.mocked(generateVideo).mock.calls[0][0].prompt;
-			expect(prompt).toContain("visuals in the style of pencil sketch");
-			expect(prompt).toContain(finalStory);
-			expect(prompt).not.toContain("colorful illustrations");
-		},
-	);
+	it.each(["--style", "-s"])("applies %s to the video prompt", async (flag) => {
+		await run(`--video ${flag} "pencil sketch"`);
+		expect(generateVideoScript).toHaveBeenCalledWith(
+			finalStory,
+			"anthropic/claude-haiku-4.5",
+			"pencil sketch",
+			undefined,
+			false,
+		);
+		const prompt = vi.mocked(generateVideo).mock.calls[0][0].prompt;
+		expect(prompt).toContain("visuals in the style of pencil sketch");
+		expect(prompt).toContain(script);
+		expect(prompt).not.toContain("colorful illustrations");
+	});
 
 	it("passes instructions separately on every story turn", async () => {
 		await run("-t Pirates -t Space");
 		expect(generateStoryPiece).toHaveBeenCalledTimes(2);
-		for (const [messages, , instructions] of vi.mocked(generateStoryPiece).mock.calls) {
+		for (const [messages, , instructions] of vi.mocked(generateStoryPiece).mock
+			.calls) {
 			expect(instructions).toBe(SYSTEM_PROMPT(["Pirates", "Space"]));
 			expect(messages.some((message) => message.role === "system")).toBe(false);
 		}
@@ -259,19 +285,56 @@ describe("storytime final output", () => {
 
 	it("passes the requested duration to video generation", async () => {
 		await run("--video --video-duration 8");
+		expect(generateVideoScript).toHaveBeenCalledWith(
+			finalStory,
+			"anthropic/claude-haiku-4.5",
+			"",
+			8,
+			false,
+		);
 		expect(generateVideo).toHaveBeenCalledWith(
 			expect.objectContaining({ duration: 8 }),
 		);
 	});
 
-	it.each(["generation", "upload"])(
+	it("uses the selected text model to plan the video", async () => {
+		await run("--video --model custom/text-model");
+		expect(generateVideoScript).toHaveBeenCalledWith(
+			finalStory,
+			"custom/text-model",
+			"",
+			undefined,
+			false,
+		);
+	});
+
+	it("waits for the script before starting the video render", async () => {
+		const pending = Promise.withResolvers<string>();
+		vi.mocked(generateVideoScript).mockReturnValue(pending.promise);
+		const running = run("--video");
+		await vi.waitFor(() => expect(generateVideoScript).toHaveBeenCalledOnce());
+		expect(generateVideo).not.toHaveBeenCalled();
+		pending.resolve(script);
+		await running;
+		expect(generateVideo).toHaveBeenCalledWith(
+			expect.objectContaining({ prompt: VIDEO_GEN_PROMPT(script) }),
+		);
+	});
+
+	it.each(["planning", "generation", "upload"])(
 		"reports %s failure without losing the final story",
 		async (stage) => {
 			const error = new Error("Provider or Slack failed");
-			if (stage === "generation")
+			if (stage === "planning")
+				vi.mocked(generateVideoScript).mockRejectedValue(error);
+			else if (stage === "generation")
 				vi.mocked(generateVideo).mockRejectedValue(error);
 			else vi.mocked(uploadStoryVideo).mockRejectedValue(error);
 			await expect(run("--video")).rejects.toThrow(error);
+			if (stage === "planning") {
+				expect(generateVideo).not.toHaveBeenCalled();
+				expect(uploadStoryVideo).not.toHaveBeenCalled();
+			}
 			expect(updateSlackMessage).toHaveBeenLastCalledWith(
 				expect.objectContaining({
 					ts: "final",
