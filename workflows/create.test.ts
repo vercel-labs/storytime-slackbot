@@ -1,4 +1,5 @@
 import { experimental_generateVideo as generateVideo } from "@ai-sdk/workflow/video";
+import { stringToArgv } from "@tootallnate/string-argv";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { parseStorytimeArgs } from "../lib/args";
 import { SYSTEM_PROMPT, VIDEO_GEN_PROMPT } from "../lib/prompt";
@@ -121,7 +122,7 @@ describe("storytime final output", () => {
 		mediaType: "video/mp4",
 	};
 	const run = (text = "") =>
-		storytime(new URLSearchParams({ channel_id: "channel", text }));
+		storytime("channel", parseStorytimeArgs(stringToArgv(text)));
 
 	beforeEach(() => {
 		vi.resetAllMocks();

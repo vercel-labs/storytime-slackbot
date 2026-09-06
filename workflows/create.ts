@@ -1,9 +1,8 @@
 import { experimental_generateVideo as generateVideo } from "@ai-sdk/workflow/video";
-import { stringToArgv } from "@tootallnate/string-argv";
 import type { ModelMessage } from "ai";
 import { defineHook, FatalError } from "workflow";
 import { z } from "zod";
-import { parseStorytimeArgs } from "../lib/args";
+import type { StorytimeArgs } from "../lib/args";
 import { SYSTEM_PROMPT, VIDEO_GEN_PROMPT } from "../lib/prompt";
 
 // Look ma no queues or kv!
@@ -29,16 +28,14 @@ const slackMessageHookSchema = z.object({
 
 export const slackMessageHook = defineHook({ schema: slackMessageHookSchema });
 
-export async function storytime(slashCommand: URLSearchParams) {
+export async function storytime(channelId: string, options: StorytimeArgs) {
 	"use workflow";
 
 	// Initialize the workflow
-	const channelId = slashCommand.get("channel_id");
 	if (!channelId) {
 		throw new FatalError("`channel_id` is required");
 	}
 
-	const argv = stringToArgv(slashCommand.get("text") || "");
 	const {
 		themes,
 		model,
@@ -50,7 +47,7 @@ export async function storytime(slashCommand: URLSearchParams) {
 		videoModel,
 		videoDuration,
 		transcripts,
-	} = parseStorytimeArgs(argv);
+	} = options;
 
 	// ...including local state like the entire message history
 	let finalStory = "";

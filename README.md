@@ -2,7 +2,7 @@
 
 <img align="right" width="200" height="200" src="./public/storytime.png">
 
-An interactive AI-powered Slack bot that creates collaborative children's stories with your team. Users can start a story with a slash command, and the bot will generate an introduction based on random themes.
+An interactive AI-powered Slack bot that creates collaborative children's stories with your team. The `/storytime` slash command opens a configuration modal with defaults pre-selected. Submit it to start a story.
 
 Team members can then contribute to the story in a thread, with the AI helping to guide the narrative to completion and generating a storyboard image at the end. Use `/storytime --video` to generate an animated video instead.
 
@@ -46,7 +46,9 @@ pnpm install
    - Request URL: `https://your-domain.vercel.app/api/slack/command`
    - Description: "Start a collaborative story"
 
-6. Install the app to your workspace and copy the Bot User OAuth Token
+6. In **Interactivity & Shortcuts**, enable interactivity and set the Request URL to `https://your-domain.vercel.app/api/slack/interactions`
+7. Install the app to your workspace and copy the Bot User OAuth Token
+8. Copy the **Signing Secret** from **Basic Information > App Credentials** for the environment configuration below
 
 ### 3. Set Up AI Gateway API Key
 
@@ -63,10 +65,13 @@ Create a `.env.local` file:
 
 ```bash
 SLACK_BOT_TOKEN=xoxb-your-bot-token-here
+SLACK_SIGNING_SECRET=your_slack_signing_secret
 AI_GATEWAY_API_KEY=your_ai_gateway_api_key
 ```
 
-AI Gateway request transcripts are disabled by default. To opt in for a session, first enable transcripts in your team's AI Gateway settings, then use `/storytime --transcripts` (or `pnpm tsx local.ts --transcripts`). The flag records prompts, files, and outputs for the session's story and image or video requests, including participants' story contributions. It applies to new requests only and does not enable audio transcription. Without the flag, the bot does not request transcripts.
+`SLACK_SIGNING_SECRET` is required to verify slash commands, modal submissions, and Events API requests. Set it before configuring or verifying the Slack request URLs. Existing installations must also add this variable when upgrading.
+
+AI Gateway request transcripts are disabled by default. To opt in for a session, first enable transcripts in your team's AI Gateway settings, then check **Record Gateway request transcripts** in the modal. `/storytime --transcripts` pre-selects that checkbox; the local script supports `pnpm tsx local.ts --transcripts`. Transcripts record prompts, files, and outputs for the session's story and image or video requests, including participants' contributions. This applies to new requests only and does not enable audio transcription.
 
 ### 5. Development
 
@@ -94,16 +99,18 @@ After deployment, update your Slack app configuration:
 
 - Event Subscriptions Request URL: `https://your-app.vercel.app/api/slack/webhook`
 - Slash Command Request URL: `https://your-app.vercel.app/api/slack/command`
+- Interactivity & Shortcuts Request URL: `https://your-app.vercel.app/api/slack/interactions`
 
 ## How to Use
 
 1. First, invite the bot to your channel: Type `@Storytime Bot` (or whatever you named your app) in the channel and Slack will give you the option to invite it
 2. In any Slack channel where the bot is present, type `/storytime`
-3. The bot will generate a story introduction with random themes
-4. Reply in the thread to add your part of the story
-5. The bot will respond with encouragement and continue the narrative
-6. After 2-3 iterations, the bot will conclude the story
-7. A storyboard image (or a video when using `--video`) will be generated and shared
+3. Review the configuration modal. It includes output mode, themes, visual style, models, panel count, video duration, thinking emoji, and transcripts, with current defaults filled in
+4. Click **Start Story** to generate the introduction in the original channel. Canceling the modal does not start a story
+5. Reply in the thread to add your part of the story
+6. The bot will respond with encouragement and continue the narrative
+7. After 2-3 iterations, the bot will conclude the story
+8. The selected storyboard image or video will be generated and shared
 
 ![Storyboard Example](./public/storyboard.png)
 
@@ -111,12 +118,12 @@ After deployment, update your Slack app configuration:
 
 ### Command Options
 
-The `/storytime` command supports several optional flags:
+The `/storytime` command supports optional flags to pre-fill the configuration modal. Flags do not skip the modal; click **Start Story** to confirm. Image and video settings are shown together, but only the selected output mode's settings are used.
 
 | Flag               | Alias | Description                                                                                              |
 | ------------------ | ----- | -------------------------------------------------------------------------------------------------------- |
 | `--theme`          | `-t`  | Story theme (can be specified multiple times). Defaults to 2 random themes if fewer than 2 are provided. |
-| `--model`          | `-m`  | Text generation model. Default: `meta/llama-4-scout`                                                     |
+| `--model`          | `-m`  | Text generation model. Default: `anthropic/claude-haiku-4.5`                                            |
 | `--image-model`    | `-i`  | Image generation model. Default: `google/gemini-3-pro-image`                                             |
 | `--style`          | `-s`  | Visual style for the generated image or video (e.g., "watercolor", "pencil sketch", "claymation").       |
 | `--video`          |       | Generate a video instead of the final storyboard image.                                                |

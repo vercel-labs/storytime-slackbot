@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isValidSlackRequest } from "@/lib/slack-request";
 import { slackMessageHook } from "@/workflows/create";
 
 const slackMessageSchema = z.object({
@@ -13,7 +14,11 @@ const slackMessageSchema = z.object({
 });
 
 export async function POST(req: Request) {
-	const body = await req.json();
+	const rawBody = await req.text();
+	if (!isValidSlackRequest(req, rawBody)) {
+		return new Response("Unauthorized", { status: 401 });
+	}
+	const body = JSON.parse(rawBody);
 
 	// Slack Events API URL Verification
 	if (body.type === "url_verification") {
@@ -23,9 +28,6 @@ export async function POST(req: Request) {
 			},
 		});
 	}
-
-	// TODO: validate webhook body
-	// https://api.slack.com/authentication/verifying-requests-from-slack
 
 	const parsedBody = slackMessageSchema.safeParse(body);
 	if (parsedBody.success) {
