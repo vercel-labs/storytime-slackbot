@@ -1,7 +1,7 @@
 import { experimental_generateVideo as generateVideo } from "@ai-sdk/workflow/video";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { parseStorytimeArgs } from "../lib/args";
-import { VIDEO_GEN_PROMPT } from "../lib/prompt";
+import { SYSTEM_PROMPT, VIDEO_GEN_PROMPT } from "../lib/prompt";
 import { storytime } from "./create";
 import { generateStoryPiece } from "./steps/generate-story-piece";
 import {
@@ -165,7 +165,7 @@ describe("storytime final output", () => {
 			false,
 		);
 		for (const call of vi.mocked(generateStoryPiece).mock.calls) {
-			expect(call[2]).toBe(false);
+			expect(call[3]).toBe(false);
 		}
 		expect(generateVideo).not.toHaveBeenCalled();
 		expect(uploadStoryVideo).not.toHaveBeenCalled();
@@ -214,7 +214,7 @@ describe("storytime final output", () => {
 			await run(`--transcripts${videoFlag}`);
 			expect(generateStoryPiece).toHaveBeenCalledTimes(2);
 			for (const call of vi.mocked(generateStoryPiece).mock.calls) {
-				expect(call[2]).toBe(true);
+				expect(call[3]).toBe(true);
 			}
 			if (videoFlag) {
 				expect(generateVideo).toHaveBeenCalledWith(
@@ -246,6 +246,15 @@ describe("storytime final output", () => {
 			expect(prompt).not.toContain("colorful illustrations");
 		},
 	);
+
+	it("passes instructions separately on every story turn", async () => {
+		await run("-t Pirates -t Space");
+		expect(generateStoryPiece).toHaveBeenCalledTimes(2);
+		for (const [messages, , instructions] of vi.mocked(generateStoryPiece).mock.calls) {
+			expect(instructions).toBe(SYSTEM_PROMPT(["Pirates", "Space"]));
+			expect(messages.some((message) => message.role === "system")).toBe(false);
+		}
+	});
 
 	it("passes the requested duration to video generation", async () => {
 		await run("--video --video-duration 8");

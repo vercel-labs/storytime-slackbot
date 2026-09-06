@@ -16,6 +16,7 @@ const StoryPieceSchema = z.object({
 export async function generateStoryPiece(
 	messages: ModelMessage[],
 	model: string,
+	instructions: string,
 	transcripts = false,
 ) {
 	"use step";
@@ -26,6 +27,7 @@ export async function generateStoryPiece(
 	console.time("Generating story piece");
 	const result = await generateText({
 		model,
+		instructions,
 		messages,
 		providerOptions: transcripts
 			? { gateway: { transcripts: { enabled: true } } }

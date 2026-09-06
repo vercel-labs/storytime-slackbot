@@ -27,11 +27,8 @@ console.log(`Image Model: ${imageModel}`);
 if (style) console.log(`Style: ${style}`);
 if (panels != null) console.log(`Panels: ${panels}`);
 
+const instructions = SYSTEM_PROMPT(themes);
 const messages: ModelMessage[] = [
-	{
-		role: "system",
-		content: SYSTEM_PROMPT(themes),
-	},
 	{
 		role: "user",
 		content: "Let's start a new story.",
@@ -49,6 +46,7 @@ let finalStory = "";
 while (true) {
 	const result = await generateText({
 		model,
+		instructions,
 		messages,
 		providerOptions: transcripts
 			? { gateway: { transcripts: { enabled: true } } }

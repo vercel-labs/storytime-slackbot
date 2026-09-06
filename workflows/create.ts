@@ -54,11 +54,8 @@ export async function storytime(slashCommand: URLSearchParams) {
 
 	// ...including local state like the entire message history
 	let finalStory = "";
+	const instructions = SYSTEM_PROMPT(themes);
 	const messages: ModelMessage[] = [
-		{
-			role: "system",
-			content: SYSTEM_PROMPT(themes),
-		},
 		{
 			role: "user",
 			content: "Let's start a new story.",
@@ -74,7 +71,7 @@ export async function storytime(slashCommand: URLSearchParams) {
 			text: `${introText}\n\n> _Generating introduction…_ :${thinkingEmoji}:`,
 		}),
 		// Ask the LLM to initiate the story
-		generateStoryPiece(messages, model, transcripts),
+		generateStoryPiece(messages, model, instructions, transcripts),
 	]);
 
 	const botId = message?.user;
@@ -115,7 +112,7 @@ export async function storytime(slashCommand: URLSearchParams) {
 
 		// Submit user's message to the LLM to continue the story
 		const [aiResponse] = await Promise.all([
-			generateStoryPiece(messages, model, transcripts),
+			generateStoryPiece(messages, model, instructions, transcripts),
 			addReactionToMessage({
 				channel: channelId,
 				timestamp: data.ts,
