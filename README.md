@@ -69,6 +69,8 @@ SLACK_SIGNING_SECRET=your_slack_signing_secret
 AI_GATEWAY_API_KEY=your_ai_gateway_api_key
 ```
 
+If image or video generation fails, the bot posts the error in the story thread with a link to the workflow run in the Vercel dashboard. The link uses the team slug and project name from the deployment's [OIDC token](https://vercel.com/docs/oidc/reference). If OIDC is disabled, set `VERCEL_TEAM_SLUG` and `VERCEL_PROJECT_NAME` instead. Without either, the error shows the run ID without a link.
+
 `SLACK_SIGNING_SECRET` is required to verify slash commands, modal submissions, and Events API requests. Set it before configuring or verifying the Slack request URLs. Existing installations must also add this variable when upgrading.
 
 AI Gateway request transcripts are disabled for Slack sessions. The local script can opt in with `pnpm tsx local.ts --transcripts`, after you enable transcripts in your team's AI Gateway settings. Transcripts record prompts, files, and outputs for the session's story and image or video requests, including participants' contributions. This applies to new requests only and does not enable audio transcription.

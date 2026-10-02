@@ -3,6 +3,7 @@ import type { ModelMessage } from "ai";
 import { defineHook, FatalError } from "workflow";
 import { z } from "zod";
 import type { StorytimeArgs } from "../lib/args";
+import { getErrorMessage } from "../lib/generation-error";
 import { SYSTEM_PROMPT, VIDEO_GEN_PROMPT } from "../lib/prompt";
 
 // Look ma no queues or kv!
@@ -10,6 +11,7 @@ import { SYSTEM_PROMPT, VIDEO_GEN_PROMPT } from "../lib/prompt";
 // Steps
 import { generateStoryPiece } from "./steps/generate-story-piece";
 import { generateVideoScript } from "./steps/generate-video-script";
+import { postGenerationError } from "./steps/post-generation-error";
 import {
 	broadcastStoryboardImage,
 	generateStoryboardImage,
@@ -157,9 +159,9 @@ export async function storytime(channelId: string, options: StorytimeArgs) {
 		reply_broadcast: true,
 	});
 
-	let fileId: string | null;
-	if (video) {
-		try {
+	let fileId: string;
+	try {
+		if (video) {
 			const script = await generateVideoScript(
 				finalStory,
 				model,
@@ -177,24 +179,33 @@ export async function storytime(channelId: string, options: StorytimeArgs) {
 					: undefined,
 			});
 			fileId = await uploadStoryVideo(channelId, ts, result.videos[0]);
-		} catch (error) {
-			await updateSlackMessage({
+		} else {
+			fileId = await generateStoryboardImage(
+				channelId,
+				ts,
+				finalStory,
+				imageModel,
+				style,
+				panels,
+				transcripts,
+			);
+		}
+	} catch (error) {
+		// Replace the generation status and report the error in the thread,
+		// so the session doesn't appear stuck.
+		await Promise.all([
+			updateSlackMessage({
 				channel: channelId,
 				ts: finalTs,
-				text: `${finalText}\n\n_The story video could not be generated or uploaded. Please try a new session._`,
-			});
-			throw error;
-		}
-	} else {
-		fileId = await generateStoryboardImage(
-			channelId,
-			ts,
-			finalStory,
-			imageModel,
-			style,
-			panels,
-			transcripts,
-		);
+				text: `${finalText}\n\n:warning: _The ${outputName} could not be generated. See the thread for details._`,
+			}),
+			postGenerationError(channelId, ts, {
+				outputName,
+				model: video ? videoModel : imageModel,
+				message: getErrorMessage(error),
+			}),
+		]);
+		throw error;
 	}
 
 	// Remove the generation status once the file has been uploaded.
@@ -205,7 +216,5 @@ export async function storytime(channelId: string, options: StorytimeArgs) {
 	});
 
 	// Slack's file broadcast works for both images and videos.
-	if (fileId) {
-		await broadcastStoryboardImage(channelId, ts, fileId);
-	}
+	await broadcastStoryboardImage(channelId, ts, fileId);
 }

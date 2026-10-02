@@ -1,5 +1,6 @@
 import { FatalError } from "workflow";
 import { generateImageFile } from "@/lib/generate-image";
+import { toStepError } from "@/lib/generation-error";
 import { IMAGE_GEN_PROMPT } from "@/lib/prompt";
 import { slack } from "@/lib/slack";
 
@@ -18,30 +19,30 @@ export async function generateStoryboardImage(
 	style: string,
 	panels: number | null = null,
 	transcripts = false,
-): Promise<string | null> {
+): Promise<string> {
 	"use step";
 
 	console.time("Generating storyboard image");
-	const imageFile = await generateImageFile({
-		model: imageModel,
-		prompt: IMAGE_GEN_PROMPT(finalStory, style, panels),
-		providerOptions: transcripts
-			? { gateway: { transcripts: { enabled: true } } }
-			: undefined,
-	});
-	console.timeEnd("Generating storyboard image");
+	let imageFile: Awaited<ReturnType<typeof generateImageFile>>;
+	try {
+		imageFile = await generateImageFile({
+			model: imageModel,
+			prompt: IMAGE_GEN_PROMPT(finalStory, style, panels),
+			providerOptions: transcripts
+				? { gateway: { transcripts: { enabled: true } } }
+				: undefined,
+		});
+	} catch (error) {
+		throw toStepError(error);
+	} finally {
+		console.timeEnd("Generating storyboard image");
+	}
 
 	// Check if the model returned any image files
 	if (!imageFile?.uint8Array) {
-		console.warn(
-			`Image generation failed: model "${imageModel}" did not return any image files`,
+		throw new FatalError(
+			`The model "${imageModel}" did not return an image. It may not support image generation.`,
 		);
-		await slack.chat.postMessage({
-			channel: channelId,
-			thread_ts: threadTs,
-			text: `⚠️ Image generation failed: the model \`${imageModel}\` does not support image generation.`,
-		});
-		return null;
 	}
 
 	console.time("Uploading image to Slack");

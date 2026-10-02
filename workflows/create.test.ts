@@ -6,6 +6,7 @@ import { SYSTEM_PROMPT, VIDEO_GEN_PROMPT } from "../lib/prompt";
 import { storytime } from "./create";
 import { generateStoryPiece } from "./steps/generate-story-piece";
 import { generateVideoScript } from "./steps/generate-video-script";
+import { postGenerationError } from "./steps/post-generation-error";
 import {
 	broadcastStoryboardImage,
 	generateStoryboardImage,
@@ -44,6 +45,9 @@ vi.mock("./steps/post-slack-message", () => ({
 	removeReactionFromMessage: vi.fn(),
 }));
 vi.mock("./steps/upload-story-video", () => ({ uploadStoryVideo: vi.fn() }));
+vi.mock("./steps/post-generation-error", () => ({
+	postGenerationError: vi.fn(),
+}));
 
 describe("storytime options", () => {
 	it("defaults to image output", () => {
@@ -322,7 +326,7 @@ describe("storytime final output", () => {
 	});
 
 	it.each(["planning", "generation", "upload"])(
-		"reports %s failure without losing the final story",
+		"reports video %s failure without losing the final story",
 		async (stage) => {
 			const error = new Error("Provider or Slack failed");
 			if (stage === "planning")
@@ -338,9 +342,16 @@ describe("storytime final output", () => {
 			expect(updateSlackMessage).toHaveBeenLastCalledWith(
 				expect.objectContaining({
 					ts: "final",
-					text: expect.stringContaining("could not be generated or uploaded"),
+					text: expect.stringContaining(
+						"The story video could not be generated",
+					),
 				}),
 			);
+			expect(postGenerationError).toHaveBeenCalledWith("channel", "thread", {
+				outputName: "story video",
+				model: "google/veo-3.1-generate-001",
+				message: "Provider or Slack failed",
+			});
 			expect(vi.mocked(updateSlackMessage).mock.lastCall?.[0]).toEqual(
 				expect.objectContaining({
 					text: expect.stringContaining(finalStory),
@@ -350,4 +361,32 @@ describe("storytime final output", () => {
 			expect(generateStoryboardImage).not.toHaveBeenCalled();
 		},
 	);
+
+	it("reports image failure in the thread instead of getting stuck", async () => {
+		const cause = new Error(
+			"imagine:content-moderated: Generated image rejected by content moderation.",
+		);
+		const error = Object.assign(
+			new Error(
+				`Step "step//./workflows/steps/generate-storyboard-image//generateStoryboardImage" failed after 3 retries: ${cause.message}`,
+			),
+			{ cause },
+		);
+		vi.mocked(generateStoryboardImage).mockRejectedValue(error);
+		await expect(
+			run("--image-model spacexai/grok-imagine-image-2.0"),
+		).rejects.toThrow(error);
+		expect(updateSlackMessage).toHaveBeenLastCalledWith({
+			channel: "channel",
+			ts: "final",
+			text: `*Here is the final story:*\n\n> _${finalStory}_\n\n:warning: _The storyboard image could not be generated. See the thread for details._`,
+		});
+		// The original error is reported, not the step retry wrapper.
+		expect(postGenerationError).toHaveBeenCalledWith("channel", "thread", {
+			outputName: "storyboard image",
+			model: "spacexai/grok-imagine-image-2.0",
+			message: cause.message,
+		});
+		expect(broadcastStoryboardImage).not.toHaveBeenCalled();
+	});
 });
