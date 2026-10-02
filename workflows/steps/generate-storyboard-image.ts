@@ -1,7 +1,14 @@
-import { generateText } from "ai";
 import { FatalError } from "workflow";
+import { generateImageFile } from "@/lib/generate-image";
 import { IMAGE_GEN_PROMPT } from "@/lib/prompt";
 import { slack } from "@/lib/slack";
+
+const IMAGE_EXTENSIONS: Record<string, string> = {
+	"image/png": "png",
+	"image/jpeg": "jpg",
+	"image/webp": "webp",
+	"image/gif": "gif",
+};
 
 export async function generateStoryboardImage(
 	channelId: string,
@@ -15,7 +22,7 @@ export async function generateStoryboardImage(
 	"use step";
 
 	console.time("Generating storyboard image");
-	const result = await generateText({
+	const imageFile = await generateImageFile({
 		model: imageModel,
 		prompt: IMAGE_GEN_PROMPT(finalStory, style, panels),
 		providerOptions: transcripts
@@ -25,7 +32,6 @@ export async function generateStoryboardImage(
 	console.timeEnd("Generating storyboard image");
 
 	// Check if the model returned any image files
-	const imageFile = result.files?.[0];
 	if (!imageFile?.uint8Array) {
 		console.warn(
 			`Image generation failed: model "${imageModel}" did not return any image files`,
@@ -43,7 +49,8 @@ export async function generateStoryboardImage(
 		channel_id: channelId,
 		thread_ts: threadTs,
 		file: Buffer.from(imageFile.uint8Array),
-		filename: "storyboard.png",
+		// Dedicated image models may return JPEG/WebP rather than PNG.
+		filename: `storyboard.${IMAGE_EXTENSIONS[imageFile.mediaType] ?? "png"}`,
 		title: "Storyboard",
 	});
 	console.timeEnd("Uploading image to Slack");

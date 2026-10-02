@@ -7,6 +7,7 @@ import { generateText, type ModelMessage, Output } from "ai";
 import terminalImage from "terminal-image";
 import { z } from "zod";
 import { parseStorytimeArgs } from "./lib/args.ts";
+import { generateImageFile } from "./lib/generate-image.ts";
 import { IMAGE_GEN_PROMPT, SYSTEM_PROMPT } from "./lib/prompt.ts";
 
 const { themes, model, imageModel, style, panels, video, transcripts } =
@@ -83,12 +84,15 @@ console.log("");
 console.log("Here is the final story:");
 console.log(finalStory);
 
-const result = await generateText({
+const image = await generateImageFile({
 	model: imageModel,
 	prompt: IMAGE_GEN_PROMPT(finalStory, style, panels),
 	providerOptions: transcripts
 		? { gateway: { transcripts: { enabled: true } } }
 		: undefined,
 });
+if (!image) {
+	throw new Error(`Model "${imageModel}" did not return any image files`);
+}
 
-console.log(await terminalImage.buffer(result.files[0].uint8Array));
+console.log(await terminalImage.buffer(image.uint8Array));
