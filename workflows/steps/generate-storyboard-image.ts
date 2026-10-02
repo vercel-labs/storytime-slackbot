@@ -1,6 +1,14 @@
-import { FatalError } from "workflow";
+import { FatalError, getStepMetadata } from "workflow";
+import {
+	FALLBACK_COUNT,
+	IMAGE_FALLBACK_MODELS,
+	withFallbacks,
+} from "@/lib/fallback-models";
 import { generateImageFile } from "@/lib/generate-image";
-import { toStepError } from "@/lib/generation-error";
+import {
+	fallbackNoticeMessage,
+	getErrorMessage,
+} from "@/lib/generation-error";
 import { IMAGE_GEN_PROMPT } from "@/lib/prompt";
 import { slack } from "@/lib/slack";
 
@@ -22,27 +30,50 @@ export async function generateStoryboardImage(
 ): Promise<string> {
 	"use step";
 
-	console.time("Generating storyboard image");
+	// Each retry uses the next fallback model (see `maxRetries` below).
+	const models = withFallbacks(imageModel, IMAGE_FALLBACK_MODELS);
+	const { attempt } = getStepMetadata();
+	const model = models[Math.min(attempt, models.length) - 1];
+
+	console.time(`Generating storyboard image with ${model}`);
 	let imageFile: Awaited<ReturnType<typeof generateImageFile>>;
 	try {
 		imageFile = await generateImageFile({
-			model: imageModel,
+			model,
 			prompt: IMAGE_GEN_PROMPT(finalStory, style, panels),
 			providerOptions: transcripts
 				? { gateway: { transcripts: { enabled: true } } }
 				: undefined,
 		});
+		if (!imageFile?.uint8Array) {
+			throw new Error(
+				`The model "${model}" did not return an image. It may not support image generation.`,
+			);
+		}
 	} catch (error) {
-		throw toStepError(error);
+		// Errors are retried even if permanent (e.g. content moderation), since
+		// the retry uses a different model.
+		const nextModel = models[attempt];
+		if (nextModel) {
+			await slack.chat
+				.postMessage({
+					channel: channelId,
+					thread_ts: threadTs,
+					...fallbackNoticeMessage({
+						outputName: "storyboard image",
+						model,
+						nextModel,
+						message: getErrorMessage(error),
+					}),
+				})
+				.catch((noticeError) => {
+					// Don't mask the generation error, which triggers the fallback.
+					console.warn("Could not post fallback notice", noticeError);
+				});
+		}
+		throw error;
 	} finally {
-		console.timeEnd("Generating storyboard image");
-	}
-
-	// Check if the model returned any image files
-	if (!imageFile?.uint8Array) {
-		throw new FatalError(
-			`The model "${imageModel}" did not return an image. It may not support image generation.`,
-		);
+		console.timeEnd(`Generating storyboard image with ${model}`);
 	}
 
 	console.time("Uploading image to Slack");
@@ -63,6 +94,9 @@ export async function generateStoryboardImage(
 	// @ts-expect-error - files is not typed
 	return res.files[0].files[0].id as string;
 }
+
+// One attempt per model: the selected model, then each fallback.
+generateStoryboardImage.maxRetries = FALLBACK_COUNT;
 
 export async function broadcastStoryboardImage(
 	channelId: string,

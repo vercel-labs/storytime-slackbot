@@ -1,9 +1,8 @@
-import { FatalError } from "workflow";
 import { describe, expect, it } from "vitest";
 import {
+	fallbackNoticeMessage,
 	generationErrorMessage,
 	getErrorMessage,
-	toStepError,
 } from "./generation-error";
 
 describe("getErrorMessage", () => {
@@ -27,32 +26,36 @@ describe("getErrorMessage", () => {
 	});
 });
 
-describe("toStepError", () => {
-	it.each([
-		Object.assign(new Error("imagine:content-moderated: rejected"), {
-			statusCode: 500,
-		}),
-		Object.assign(new Error("Invalid request"), { statusCode: 400 }),
-	])("makes permanent errors fatal: %s", (error) => {
-		const result = toStepError(error);
-		expect(FatalError.is(result)).toBe(true);
-		expect((result as Error).message).toBe(error.message);
-		expect((result as Error).cause).toBe(error);
-	});
-
-	it.each([
-		Object.assign(new Error("Internal error"), { statusCode: 500 }),
-		Object.assign(new Error("Rate limited"), { statusCode: 429 }),
-		new Error("Network error"),
-	])("keeps transient errors retryable: %s", (error) => {
-		expect(toStepError(error)).toBe(error);
+describe("fallbackNoticeMessage", () => {
+	it("names the failed and next models", () => {
+		expect(
+			fallbackNoticeMessage({
+				outputName: "storyboard image",
+				model: "spacexai/grok-imagine-image-2.0",
+				nextModel: "google/gemini-3-pro-image",
+				message: "imagine:content-moderated: rejected <by> moderation",
+			}),
+		).toEqual({
+			text: "spacexai/grok-imagine-image-2.0 couldn't generate the storyboard image (imagine:content-moderated: rejected <by> moderation). Trying google/gemini-3-pro-image…",
+			blocks: [
+				{
+					type: "context",
+					elements: [
+						{
+							type: "mrkdwn",
+							text: ":arrows_counterclockwise: `spacexai/grok-imagine-image-2.0` couldn't generate the storyboard image: imagine:content-moderated: rejected &lt;by&gt; moderation\nTrying `google/gemini-3-pro-image` instead…",
+						},
+					],
+				},
+			],
+		});
 	});
 });
 
 describe("generationErrorMessage", () => {
 	const details = {
 		outputName: "storyboard image",
-		model: "spacexai/grok-imagine-image-2.0",
+		models: ["spacexai/grok-imagine-image-2.0"],
 		message:
 			"imagine:content-moderated: Generated image rejected by content moderation.",
 		runId: "wrun_123",
@@ -93,6 +96,16 @@ describe("generationErrorMessage", () => {
 		});
 	});
 
+	it("lists every model tried", () => {
+		const { blocks } = generationErrorMessage({
+			...details,
+			models: ["a/one", "b/two", "c/three"],
+		});
+		expect(JSON.stringify(blocks.at(-1))).toContain(
+			"Models tried: `a/one`, `b/two`, `c/three`",
+		);
+	});
+
 	it("shows the run ID without a link when the URL is unknown", () => {
 		const { blocks } = generationErrorMessage(details);
 		expect(JSON.stringify(blocks.at(-1))).toContain("Workflow run: `wrun_123`");
@@ -102,7 +115,7 @@ describe("generationErrorMessage", () => {
 		const { blocks } = generationErrorMessage({
 			...details,
 			outputName: "story video",
-			model: "a<b>&c",
+			models: ["a<b>&c"],
 			message: "x".repeat(3000),
 		});
 		expect(JSON.stringify(blocks)).toContain("a&lt;b&gt;&amp;c");

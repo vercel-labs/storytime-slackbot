@@ -6,7 +6,10 @@ import { SYSTEM_PROMPT, VIDEO_GEN_PROMPT } from "../lib/prompt";
 import { storytime } from "./create";
 import { generateStoryPiece } from "./steps/generate-story-piece";
 import { generateVideoScript } from "./steps/generate-video-script";
-import { postGenerationError } from "./steps/post-generation-error";
+import {
+	postFallbackNotice,
+	postGenerationError,
+} from "./steps/post-generation-error";
 import {
 	broadcastStoryboardImage,
 	generateStoryboardImage,
@@ -47,6 +50,7 @@ vi.mock("./steps/post-slack-message", () => ({
 vi.mock("./steps/upload-story-video", () => ({ uploadStoryVideo: vi.fn() }));
 vi.mock("./steps/post-generation-error", () => ({
 	postGenerationError: vi.fn(),
+	postFallbackNotice: vi.fn(),
 }));
 
 describe("storytime options", () => {
@@ -162,6 +166,7 @@ describe("storytime final output", () => {
 			},
 		});
 		vi.mocked(uploadStoryVideo).mockResolvedValue("video-file");
+		vi.mocked(postFallbackNotice).mockResolvedValue();
 	});
 
 	it("keeps the default image generation and broadcast", async () => {
@@ -349,9 +354,20 @@ describe("storytime final output", () => {
 			);
 			expect(postGenerationError).toHaveBeenCalledWith("channel", "thread", {
 				outputName: "story video",
-				model: "google/veo-3.1-generate-001",
+				// Generation falls back through every model; other stages don't.
+				models:
+					stage === "generation"
+						? [
+								"google/veo-3.1-generate-001",
+								"klingai/kling-v3.0-t2v",
+								"bytedance/seedance-2.0",
+							]
+						: ["google/veo-3.1-generate-001"],
 				message: "Provider or Slack failed",
 			});
+			expect(generateVideo).toHaveBeenCalledTimes(
+				{ planning: 0, generation: 3, upload: 1 }[stage]!,
+			);
 			expect(vi.mocked(updateSlackMessage).mock.lastCall?.[0]).toEqual(
 				expect.objectContaining({
 					text: expect.stringContaining(finalStory),
@@ -384,9 +400,66 @@ describe("storytime final output", () => {
 		// The original error is reported, not the step retry wrapper.
 		expect(postGenerationError).toHaveBeenCalledWith("channel", "thread", {
 			outputName: "storyboard image",
-			model: "spacexai/grok-imagine-image-2.0",
+			models: [
+				"spacexai/grok-imagine-image-2.0",
+				"google/gemini-3-pro-image",
+				"openai/gpt-image-2",
+			],
 			message: cause.message,
 		});
 		expect(broadcastStoryboardImage).not.toHaveBeenCalled();
+	});
+
+	it("falls back to the next video model and reports the switch", async () => {
+		vi.mocked(generateVideo)
+			.mockRejectedValueOnce(new Error("Veo is down"))
+			.mockResolvedValueOnce({ videos: [] } as never)
+			.mockResolvedValueOnce({ videos: [video] } as never);
+		await run("--video");
+		expect(
+			vi.mocked(generateVideo).mock.calls.map(([options]) => options.model),
+		).toEqual([
+			"google/veo-3.1-generate-001",
+			"klingai/kling-v3.0-t2v",
+			"bytedance/seedance-2.0",
+		]);
+		expect(vi.mocked(postFallbackNotice).mock.calls).toEqual([
+			[
+				"channel",
+				"thread",
+				{
+					outputName: "story video",
+					model: "google/veo-3.1-generate-001",
+					nextModel: "klingai/kling-v3.0-t2v",
+					message: "Veo is down",
+				},
+			],
+			[
+				"channel",
+				"thread",
+				{
+					outputName: "story video",
+					model: "klingai/kling-v3.0-t2v",
+					nextModel: "bytedance/seedance-2.0",
+					message: 'The model "klingai/kling-v3.0-t2v" did not return a video.',
+				},
+			],
+		]);
+		expect(uploadStoryVideo).toHaveBeenCalledWith("channel", "thread", video);
+		expect(postGenerationError).not.toHaveBeenCalled();
+		expect(broadcastStoryboardImage).toHaveBeenCalledWith(
+			"channel",
+			"thread",
+			"video-file",
+		);
+	});
+
+	it("keeps falling back if a notice can't be posted", async () => {
+		vi.mocked(postFallbackNotice).mockRejectedValue(new Error("Slack down"));
+		vi.mocked(generateVideo)
+			.mockRejectedValueOnce(new Error("Veo is down"))
+			.mockResolvedValueOnce({ videos: [video] } as never);
+		await run("--video");
+		expect(uploadStoryVideo).toHaveBeenCalledWith("channel", "thread", video);
 	});
 });

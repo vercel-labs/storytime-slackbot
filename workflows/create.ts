@@ -3,6 +3,11 @@ import type { ModelMessage } from "ai";
 import { defineHook, FatalError } from "workflow";
 import { z } from "zod";
 import type { StorytimeArgs } from "../lib/args";
+import {
+	IMAGE_FALLBACK_MODELS,
+	VIDEO_FALLBACK_MODELS,
+	withFallbacks,
+} from "../lib/fallback-models";
 import { getErrorMessage } from "../lib/generation-error";
 import { SYSTEM_PROMPT, VIDEO_GEN_PROMPT } from "../lib/prompt";
 
@@ -11,7 +16,10 @@ import { SYSTEM_PROMPT, VIDEO_GEN_PROMPT } from "../lib/prompt";
 // Steps
 import { generateStoryPiece } from "./steps/generate-story-piece";
 import { generateVideoScript } from "./steps/generate-video-script";
-import { postGenerationError } from "./steps/post-generation-error";
+import {
+	postFallbackNotice,
+	postGenerationError,
+} from "./steps/post-generation-error";
 import {
 	broadcastStoryboardImage,
 	generateStoryboardImage,
@@ -159,6 +167,11 @@ export async function storytime(channelId: string, options: StorytimeArgs) {
 		reply_broadcast: true,
 	});
 
+	const mediaModels = video
+		? withFallbacks(videoModel, VIDEO_FALLBACK_MODELS)
+		: withFallbacks(imageModel, IMAGE_FALLBACK_MODELS);
+	// The image step tries every model via retries; video tracks its own attempts.
+	let triedModels: string[] = video ? [] : mediaModels;
 	let fileId: string;
 	try {
 		if (video) {
@@ -169,16 +182,37 @@ export async function storytime(channelId: string, options: StorytimeArgs) {
 				videoDuration,
 				transcripts,
 			);
-			// This runs in workflow context so rendering suspends on the provider webhook.
-			const result = await generateVideo({
-				model: videoModel,
-				prompt: VIDEO_GEN_PROMPT(script, style),
-				duration: videoDuration,
-				providerOptions: transcripts
-					? { gateway: { transcripts: { enabled: true } } }
-					: undefined,
-			});
-			fileId = await uploadStoryVideo(channelId, ts, result.videos[0]);
+			// Video generation runs in workflow context so rendering suspends on the
+			// provider webhook. It isn't a step, so fall back with a loop instead.
+			let generated: Awaited<ReturnType<typeof generateVideo>>["videos"][number];
+			for (const [i, candidate] of mediaModels.entries()) {
+				triedModels = mediaModels.slice(0, i + 1);
+				try {
+					const result = await generateVideo({
+						model: candidate,
+						prompt: VIDEO_GEN_PROMPT(script, style),
+						duration: videoDuration,
+						providerOptions: transcripts
+							? { gateway: { transcripts: { enabled: true } } }
+							: undefined,
+					});
+					if (!result.videos[0]) {
+						throw new Error(`The model "${candidate}" did not return a video.`);
+					}
+					generated = result.videos[0];
+					break;
+				} catch (error) {
+					const nextModel = mediaModels[i + 1];
+					if (!nextModel) throw error;
+					await postFallbackNotice(channelId, ts, {
+						outputName,
+						model: candidate,
+						nextModel,
+						message: getErrorMessage(error),
+					}).catch(() => {});
+				}
+			}
+			fileId = await uploadStoryVideo(channelId, ts, generated!);
 		} else {
 			fileId = await generateStoryboardImage(
 				channelId,
@@ -201,7 +235,8 @@ export async function storytime(channelId: string, options: StorytimeArgs) {
 			}),
 			postGenerationError(channelId, ts, {
 				outputName,
-				model: video ? videoModel : imageModel,
+				// Planning failures happen before any video model is tried.
+				models: triedModels.length ? triedModels : [mediaModels[0]],
 				message: getErrorMessage(error),
 			}),
 		]);

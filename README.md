@@ -69,7 +69,7 @@ SLACK_SIGNING_SECRET=your_slack_signing_secret
 AI_GATEWAY_API_KEY=your_ai_gateway_api_key
 ```
 
-If image or video generation fails, the bot posts the error in the story thread with a link to the workflow run in the Vercel dashboard. The link uses the team slug and project name from the deployment's [OIDC token](https://vercel.com/docs/oidc/reference). If OIDC is disabled, set `VERCEL_TEAM_SLUG` and `VERCEL_PROJECT_NAME` instead. Without either, the error shows the run ID without a link.
+If the selected image or video model fails, the bot posts a notice in the story thread and tries up to two fallback models, defined in `lib/fallback-models.ts`. If every model fails, the bot posts the error in the story thread with a link to the workflow run in the Vercel dashboard. The link uses the team slug and project name from the deployment's [OIDC token](https://vercel.com/docs/oidc/reference). If OIDC is disabled, set `VERCEL_TEAM_SLUG` and `VERCEL_PROJECT_NAME` instead. Without either, the error shows the run ID without a link.
 
 `SLACK_SIGNING_SECRET` is required to verify slash commands, modal submissions, and Events API requests. Set it before configuring or verifying the Slack request URLs. Existing installations must also add this variable when upgrading.
 
