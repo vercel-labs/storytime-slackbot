@@ -46,7 +46,7 @@ pnpm install
    - Request URL: `https://your-domain.vercel.app/api/slack/command`
    - Description: "Start a collaborative story"
 
-6. In **Interactivity & Shortcuts**, enable interactivity and set the Request URL to `https://your-domain.vercel.app/api/slack/interactions`
+6. In **Interactivity & Shortcuts**, enable interactivity and set the Request URL to `https://your-domain.vercel.app/api/slack/interactions`. Under **Select Menus**, set the Options Load URL to the same URL. It populates the model menus in the configuration modal
 7. Install the app to your workspace and copy the Bot User OAuth Token
 8. Copy the **Signing Secret** from **Basic Information > App Credentials** for the environment configuration below
 
@@ -71,7 +71,7 @@ AI_GATEWAY_API_KEY=your_ai_gateway_api_key
 
 `SLACK_SIGNING_SECRET` is required to verify slash commands, modal submissions, and Events API requests. Set it before configuring or verifying the Slack request URLs. Existing installations must also add this variable when upgrading.
 
-AI Gateway request transcripts are disabled by default. To opt in for a session, first enable transcripts in your team's AI Gateway settings, then check **Record Gateway request transcripts** in the modal. `/storytime --transcripts` pre-selects that checkbox; the local script supports `pnpm tsx local.ts --transcripts`. Transcripts record prompts, files, and outputs for the session's story and image or video requests, including participants' contributions. This applies to new requests only and does not enable audio transcription.
+AI Gateway request transcripts are disabled for Slack sessions. The local script can opt in with `pnpm tsx local.ts --transcripts`, after you enable transcripts in your team's AI Gateway settings. Transcripts record prompts, files, and outputs for the session's story and image or video requests, including participants' contributions. This applies to new requests only and does not enable audio transcription.
 
 ### 5. Development
 
@@ -100,12 +100,13 @@ After deployment, update your Slack app configuration:
 - Event Subscriptions Request URL: `https://your-app.vercel.app/api/slack/webhook`
 - Slash Command Request URL: `https://your-app.vercel.app/api/slack/command`
 - Interactivity & Shortcuts Request URL: `https://your-app.vercel.app/api/slack/interactions`
+- Interactivity & Shortcuts Select Menus Options Load URL: `https://your-app.vercel.app/api/slack/interactions`
 
 ## How to Use
 
 1. First, invite the bot to your channel: Type `@Storytime Bot` (or whatever you named your app) in the channel and Slack will give you the option to invite it
 2. In any Slack channel where the bot is present, type `/storytime`
-3. Review the configuration modal. It includes output mode, themes, visual style, models, panel count, video duration, thinking emoji, and transcripts, with current defaults filled in
+3. Review the configuration modal. It includes output mode, themes, visual style, models, panel count, video duration, and thinking emoji, with current defaults filled in. Each model menu lists matching [AI Gateway models](https://vercel.com/ai-gateway/models). Type to search, or pick the first option to use exactly what you typed
 4. Click **Start Story** to generate the introduction in the original channel. Canceling the modal does not start a story
 5. Reply in the thread to add your part of the story
 6. The bot will respond with encouragement and continue the narrative
@@ -129,7 +130,6 @@ The `/storytime` command supports optional flags to pre-fill the configuration m
 | `--video`          |       | Generate a video instead of the final storyboard image.                                                |
 | `--video-model`    |       | Video generation model used with `--video`. Default: `google/veo-3.1-generate-001`                       |
 | `--video-duration` |       | Video duration in seconds, used with `--video`. Must be positive; supported values depend on the model. Omit to use the model's default. |
-| `--transcripts`    |       | Enable Gateway request transcripts for this session. Off by default; requires transcripts enabled in the team's AI Gateway settings. |
 | `--panels`         | `-p`  | Number of panels in the final storyboard image (integer, 2–12). Default: 4–5 panels.                     |
 | `--thinking-emoji` | `-e`  | Emoji shown while processing. Default: `thinking_face` 🤔                                                |
 
@@ -137,7 +137,7 @@ The `--model` and `--image-model` flags accept [AI Gateway model specifiers](htt
 
 The `--video-model` flag also accepts an AI Gateway model specifier. The model must support asynchronous video generation with webhooks. Video generation uses `experimental_generateVideo` from `@ai-sdk/workflow/video`: the workflow suspends while the video renders, then uploads the result to the Slack thread and broadcasts it to the channel. It uses the same `AI_GATEWAY_API_KEY`; no additional provider key is required.
 
-Before rendering, the selected text model (`--model`) adapts the completed story into a timed script: setup, main action, resolution, then a final hold. For an 8-second clip, the slots are 0-2s, 2-5s, 5-7s, and 7-8s. Explicit durations use seconds; when duration is omitted, timing uses percentages of the model's default clip length. The script prioritizes the main events and ending over secondary details, aiming for a complete short adaptation rather than a verbatim retelling. Timing is guidance for the video model, not a guarantee. This adds one text-generation request, also covered by the session's transcripts setting, but still generates a single video.
+Before rendering, the selected text model (`--model`) adapts the completed story into a timed script: setup, main action, resolution, then a final hold. For an 8-second clip, the slots are 0-2s, 2-5s, 5-7s, and 7-8s. Explicit durations use seconds; when duration is omitted, timing uses percentages of the model's default clip length. The script prioritizes the main events and ending over secondary details, aiming for a complete short adaptation rather than a verbatim retelling. Timing is guidance for the video model, not a guarantee. This adds one text-generation request, but still generates a single video.
 
 The `--style` option applies to both image and video output. The `--image-model` and `--panels` options only affect image output. Without `--video`, the bot continues to generate a storyboard image.
 
@@ -148,7 +148,6 @@ The provider must be able to reach the generated `/.well-known/workflow/v1/webho
 ```
 /storytime
 /storytime --video
-/storytime --video --transcripts
 /storytime --video --video-duration 8
 /storytime --video --style claymation
 /storytime --video -t Pirates -t Space
@@ -182,7 +181,7 @@ pnpm tsx local.ts -t Pirates -t Space
 pnpm tsx local.ts -t Magic -m anthropic/claude-sonnet-4
 ```
 
-The local script accepts the same `--theme`, `--model`, `--image-model`, `--style` (including `-s`), `--panels`, and `--transcripts` flags as the Slack command.
+The local script accepts the same `--theme`, `--model`, `--image-model`, `--style` (including `-s`), and `--panels` flags as the Slack command. It also accepts `--transcripts` to record Gateway request transcripts, which requires transcripts enabled in your team's AI Gateway settings.
 
 The local script does not support `--video`, which needs a running Workflow runtime and a publicly reachable webhook. Test video generation through the Slack command instead.
 

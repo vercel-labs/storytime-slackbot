@@ -2,6 +2,7 @@ import { waitUntil } from "@vercel/functions";
 import { start } from "workflow/api";
 import { z } from "zod";
 import { parseStorytimeArgs } from "@/lib/args";
+import { getModelOptions, modelKindForField } from "@/lib/model-catalog";
 import { modalSlack, slack } from "@/lib/slack";
 import { isValidSlackRequest } from "@/lib/slack-request";
 import {
@@ -42,6 +43,13 @@ const interactionSchema = z.discriminatedUnion("type", [
 	}),
 ]);
 
+const suggestionSchema = z.object({
+	type: z.literal("block_suggestion"),
+	block_id: z.string(),
+	value: z.string(),
+	view: z.object({ callback_id: z.literal(STORYTIME_MODAL_CALLBACK) }),
+});
+
 export async function POST(req: Request) {
 	const rawBody = await req.text();
 	if (!isValidSlackRequest(req, rawBody)) {
@@ -52,6 +60,17 @@ export async function POST(req: Request) {
 		payload = JSON.parse(new URLSearchParams(rawBody).get("payload") || "");
 	} catch {
 		return new Response("Invalid interaction payload", { status: 400 });
+	}
+	// Options for the model selects, requested via the "Options Load URL".
+	if (payload?.type === "block_suggestion") {
+		const suggestion = suggestionSchema.safeParse(payload);
+		const kind = suggestion.success
+			? modelKindForField(suggestion.data.block_id)
+			: undefined;
+		if (!suggestion.success || !kind) return Response.json({ options: [] });
+		return Response.json({
+			options: await getModelOptions(kind, suggestion.data.value),
+		});
 	}
 	if (
 		(payload?.type !== "view_submission" &&

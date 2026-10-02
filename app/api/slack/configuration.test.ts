@@ -57,6 +57,10 @@ function commandRequest(text = "") {
 	);
 }
 
+const selected = (value: string) => ({
+	value: { selected_option: { value } as { value: string } | null },
+});
+
 function submission(video = false) {
 	const payload = {
 		type: "view_submission",
@@ -75,15 +79,12 @@ function submission(video = false) {
 					},
 					themes: { value: { value: defaults.themes.join("\n") } },
 					style: { value: { value: "" } },
-					model: { value: { value: defaults.model } },
-					image_model: { value: { value: defaults.imageModel } },
+					model: selected(defaults.model),
+					image_model: selected(defaults.imageModel),
 					panels: { value: { selected_option: { value: "auto" } } },
-					video_model: { value: { value: defaults.videoModel } },
+					video_model: selected(defaults.videoModel),
 					video_duration: { value: { value: "" } },
 					thinking_emoji: { value: { value: defaults.thinkingEmoji } },
-					transcripts: {
-						value: { selected_options: [] as { value: string }[] },
-					},
 				},
 			},
 		},
@@ -137,12 +138,22 @@ describe("configuration modal", () => {
 		expect(JSON.parse(view.private_metadata!)).toMatchObject(context);
 		for (const [id, initialValue] of [
 			["themes", "Pirates\nSpace"],
-			["model", defaults.model],
-			["image_model", defaults.imageModel],
 			["thinking_emoji", "thinking_face"],
 		]) {
 			expect(view.blocks.find((block) => block.block_id === id)).toMatchObject({
 				element: { initial_value: initialValue },
+			});
+		}
+		for (const [id, model] of [
+			["model", defaults.model],
+			["image_model", defaults.imageModel],
+		]) {
+			expect(view.blocks.find((block) => block.block_id === id)).toMatchObject({
+				element: {
+					type: "external_select",
+					min_query_length: 0,
+					initial_option: { value: model, text: { text: model } },
+				},
 			});
 		}
 		expect(
@@ -162,12 +173,8 @@ describe("configuration modal", () => {
 			});
 		}
 		expect(
-			view.blocks.find((block) => block.block_id === "transcripts"),
-		).toMatchObject({
-			element: expect.not.objectContaining({
-				initial_options: expect.anything(),
-			}),
-		});
+			view.blocks.some((block) => block.block_id === "transcripts"),
+		).toBe(false);
 		expect(parseStorytimeModal(submission().view.state.values)).toEqual({
 			args: defaults,
 		});
@@ -187,7 +194,9 @@ describe("configuration modal", () => {
 		);
 		expect(
 			view.blocks.find((block) => block.block_id === "video_model"),
-		).toMatchObject({ element: { initial_value: defaults.videoModel } });
+		).toMatchObject({
+			element: { initial_option: { value: defaults.videoModel } },
+		});
 		expect(
 			view.blocks.find((block) => block.block_id === "video_duration"),
 		).toMatchObject({ element: { initial_value: "8" } });
@@ -298,10 +307,9 @@ describe("modal submission", () => {
 		const payload = submission(true);
 		const values = payload.view.state.values;
 		values.output.value.selected_option.value = "video";
-		values.video_model.value.value = "custom/video-model";
+		values.video_model.value.selected_option = { value: "custom/video-model" };
 		values.video_duration.value.value = "8";
 		values.style.value.value = "claymation";
-		values.transcripts.value.selected_options = [{ value: "enabled" }];
 		await interact(interactionRequest(payload));
 		expect(start).toHaveBeenCalledWith(storytime, [
 			context.channelId,
@@ -311,7 +319,6 @@ describe("modal submission", () => {
 				videoModel: "custom/video-model",
 				videoDuration: 8,
 				style: "claymation",
-				transcripts: true,
 			},
 		]);
 	});
@@ -336,7 +343,7 @@ describe("modal submission", () => {
 		expect(parseStorytimeModal(values)).toMatchObject({
 			errors: { panels: expect.any(String) },
 		});
-		values.model.value.value = "  ";
+		values.model.value.selected_option = { value: "  " };
 		expect(parseStorytimeModal(values)).toMatchObject({
 			errors: { model: expect.any(String) },
 		});
@@ -398,10 +405,51 @@ describe("modal submission", () => {
 	});
 });
 
+describe("model options", () => {
+	const suggestion = (block_id: string, value: string) =>
+		interactionRequest({
+			type: "block_suggestion",
+			block_id,
+			action_id: "value",
+			value,
+			view: { callback_id: STORYTIME_MODAL_CALLBACK },
+		});
+
+	afterEach(() => vi.unstubAllGlobals());
+
+	it("returns catalog matches plus the typed value", async () => {
+		vi.stubGlobal(
+			"fetch",
+			vi.fn(async () =>
+				Response.json({
+					data: [
+						{ id: "spacexai/grok-imagine-image-2.0", type: "image" },
+						{ id: "spacexai/grok-4", type: "language" },
+					],
+				}),
+			),
+		);
+		const response = await interact(suggestion("image_model", "grok"));
+		expect(await response.json()).toEqual({
+			options: [
+				expect.objectContaining({ value: "grok" }),
+				expect.objectContaining({ value: "spacexai/grok-imagine-image-2.0" }),
+			],
+		});
+	});
+
+	it("returns no options for other fields", async () => {
+		const response = await interact(suggestion("themes", "x"));
+		expect(await response.json()).toEqual({ options: [] });
+	});
+});
+
 describe("output selection", () => {
 	it("updates the view in place and restores edited values when switching back", async () => {
 		const image = submission();
-		image.view.state.values.image_model.value.value = "custom/image";
+		image.view.state.values.image_model.value.selected_option = {
+			value: "custom/image",
+		};
 		image.view.state.values.panels.value.selected_option.value = "8";
 		image.view.state.values.style.value.value = "watercolor";
 		const response = await interact(
@@ -416,7 +464,9 @@ describe("output selection", () => {
 		).toBe(false);
 		expect(
 			update.view.blocks.find((block) => block.block_id === "video_model"),
-		).toMatchObject({ element: { initial_value: defaults.videoModel } });
+		).toMatchObject({
+			element: { initial_option: { value: defaults.videoModel } },
+		});
 		expect(
 			update.view.blocks.find((block) => block.block_id === "style"),
 		).toMatchObject({ element: { initial_value: "watercolor" } });
@@ -424,14 +474,16 @@ describe("output selection", () => {
 		const video = submission(true);
 		video.view.private_metadata = update.view.private_metadata!;
 		video.view.hash = "new-hash";
-		video.view.state.values.video_model.value.value = "custom/video";
+		video.view.state.values.video_model.value.selected_option = {
+			value: "custom/video",
+		};
 		video.view.state.values.video_duration.value.value = "12";
 		await interact(interactionRequest(outputChange(video, "image")));
 		await Promise.all(background);
 		const restored = vi.mocked(modalSlack.views.update).mock.calls[1][0].view;
 		expect(
 			restored.blocks.find((block) => block.block_id === "image_model"),
-		).toMatchObject({ element: { initial_value: "custom/image" } });
+		).toMatchObject({ element: { initial_option: { value: "custom/image" } } });
 		expect(
 			restored.blocks.find((block) => block.block_id === "panels"),
 		).toMatchObject({ element: { initial_option: { value: "8" } } });
@@ -445,7 +497,7 @@ describe("output selection", () => {
 			.view;
 		expect(
 			restoredVideo.blocks.find((block) => block.block_id === "video_model"),
-		).toMatchObject({ element: { initial_value: "custom/video" } });
+		).toMatchObject({ element: { initial_option: { value: "custom/video" } } });
 		expect(
 			restoredVideo.blocks.find((block) => block.block_id === "video_duration"),
 		).toMatchObject({ element: { initial_value: "12" } });
@@ -471,7 +523,7 @@ describe("output selection", () => {
 
 	it("lets users leave unfinished video fields and submit an image", async () => {
 		const video = submission(true);
-		video.view.state.values.video_model.value.value = "";
+		video.view.state.values.video_model.value.selected_option = null;
 		video.view.state.values.video_duration.value.value = "0";
 		await interact(interactionRequest(outputChange(video, "image")));
 		await Promise.all(background);
@@ -491,7 +543,7 @@ describe("output selection", () => {
 			restored.blocks.find((block) => block.block_id === "video_model"),
 		).toMatchObject({
 			element: expect.not.objectContaining({
-				initial_value: expect.anything(),
+				initial_option: expect.anything(),
 			}),
 		});
 		expect(

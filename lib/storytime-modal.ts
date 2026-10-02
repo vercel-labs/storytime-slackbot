@@ -6,6 +6,7 @@ import {
 	parseStorytimeArgs,
 	type StorytimeArgs,
 } from "./args";
+import { modelOption } from "./model-catalog";
 
 export const STORYTIME_MODAL_CALLBACK = "storytime_config";
 export const storytimeModalContextSchema = z.object({
@@ -36,6 +37,13 @@ export const storytimeModalStateSchema = z.record(
 	),
 );
 
+// Reads a text input's value or a select's selected option.
+const fieldValue = (
+	values: z.infer<typeof storytimeModalStateSchema>,
+	id: string,
+) =>
+	values[id]?.value?.value ?? values[id]?.value?.selected_option?.value ?? "";
+
 const text = (value: string) => ({ type: "plain_text" as const, text: value });
 const option = (label: string, value: string) => ({ text: text(label), value });
 const textInput = (
@@ -55,8 +63,23 @@ const textInput = (
 		type: "plain_text_input" as const,
 		action_id: "value",
 		multiline,
-		max_length: id === "image_model" || id === "video_model" ? 200 : 3000,
+		max_length: 3000,
 		...(value ? { initial_value: value } : {}),
+	},
+});
+// Slack has no combobox element. Instead, an external select loads options
+// from the interactions endpoint and always offers the typed text first.
+const modelSelect = (id: string, label: string, value: string, hint: string) => ({
+	type: "input" as const,
+	block_id: id,
+	label: text(label),
+	hint: text(hint),
+	element: {
+		type: "external_select" as const,
+		action_id: "value",
+		min_query_length: 0,
+		placeholder: text("Search or enter a model ID"),
+		...(value ? { initial_option: modelOption(value) } : {}),
 	},
 });
 
@@ -66,7 +89,7 @@ export function buildStorytimeModal(
 	values: z.infer<typeof storytimeModalStateSchema> = {},
 ): Extract<ViewsOpenArguments["view"], { type: "modal" }> {
 	const value = (id: string, fallback: string) =>
-		id in values ? (values[id]?.value?.value ?? "") : fallback;
+		id in values ? fieldValue(values, id) : fallback;
 	const video =
 		(values.output?.value?.selected_option?.value ??
 			(args.video ? "video" : "image")) === "video";
@@ -89,11 +112,6 @@ export function buildStorytimeModal(
 			context.media?.video_duration ?? String(args.videoDuration ?? ""),
 		),
 	};
-	const recordTranscripts = values.transcripts
-		? (values.transcripts.value?.selected_options?.some(
-				(item) => item.value === "enabled",
-			) ?? false)
-		: args.transcripts;
 	const outputs = [
 		option("Storyboard image", "image"),
 		option("Video", "video"),
@@ -104,15 +122,13 @@ export function buildStorytimeModal(
 			option(`${i + MIN_PANELS} panels`, String(i + MIN_PANELS)),
 		),
 	];
-	const transcripts = option("Record Gateway request transcripts", "enabled");
 	const mediaBlocks: ViewsOpenArguments["view"]["blocks"] = video
 		? [
 				{ type: "header", text: text("Video settings") },
-				textInput(
+				modelSelect(
 					"video_model",
 					"Video model",
 					media.video_model,
-					false,
 					"Must support asynchronous generation with webhooks.",
 				),
 				{
@@ -136,7 +152,12 @@ export function buildStorytimeModal(
 			]
 		: [
 				{ type: "header", text: text("Image settings") },
-				textInput("image_model", "Image model", media.image_model),
+				modelSelect(
+					"image_model",
+					"Image model",
+					media.image_model,
+					"An AI Gateway model that outputs images.",
+				),
 				{
 					type: "input",
 					block_id: "panels",
@@ -192,12 +213,11 @@ export function buildStorytimeModal(
 				true,
 				"Applies to both modes. For example: watercolor, pencil sketch, or claymation. Leave blank for the default storybook style.",
 			),
-			textInput(
+			modelSelect(
 				"model",
 				"Story model",
 				value("model", args.model),
-				false,
-				"An AI Gateway model ID.",
+				"An AI Gateway language model.",
 			),
 			...mediaBlocks,
 			{ type: "header", text: text("Session settings") },
@@ -208,21 +228,6 @@ export function buildStorytimeModal(
 				false,
 				"Slack emoji name without colons, such as thinking_face.",
 			),
-			{
-				type: "input",
-				block_id: "transcripts",
-				label: text("Transcripts"),
-				optional: true,
-				hint: text(
-					"Records participants' contributions, prompts, files, and outputs. Requires transcripts enabled in your team's AI Gateway settings.",
-				),
-				element: {
-					type: "checkboxes",
-					action_id: "value",
-					options: [transcripts],
-					...(recordTranscripts ? { initial_options: [transcripts] } : {}),
-				},
-			},
 		],
 	};
 }
@@ -234,7 +239,7 @@ export function parseStorytimeModal(
 	| { errors: Record<string, string>; args?: never } {
 	const errors: Record<string, string> = {};
 	const argv: string[] = [];
-	const value = (id: string) => values[id]?.value?.value?.trim() || "";
+	const value = (id: string) => fieldValue(values, id).trim();
 	const output = values.output?.value?.selected_option?.value;
 	if (output !== "image" && output !== "video")
 		errors.output = "Choose image or video output.";
@@ -264,12 +269,6 @@ export function parseStorytimeModal(
 	} else if (output === "video" && value("video_duration")) {
 		argv.push(`--video-duration=${value("video_duration")}`);
 	}
-	if (
-		values.transcripts?.value?.selected_options?.some(
-			(item) => item.value === "enabled",
-		)
-	)
-		argv.push("--transcripts");
 	if (Object.keys(errors).length) return { errors };
 	try {
 		return { args: parseStorytimeArgs(argv) };
