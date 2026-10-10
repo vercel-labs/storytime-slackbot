@@ -2,7 +2,7 @@
 
 <img align="right" width="200" height="200" src="./public/storytime.png">
 
-An interactive AI-powered Slack bot that creates collaborative children's stories with your team. The `/storytime` slash command opens a configuration modal with defaults pre-selected. Submit it to start a story.
+An interactive AI-powered Slack bot that creates collaborative children's stories with your team. The `/storytime` slash command opens a configuration modal with defaults pre-selected. Submit it to start a story. Mentioning the bot in a channel — `@Storytime Bot` — starts one right away with the defaults, or with any options you type after the mention.
 
 Team members can then contribute to the story in a thread, with the AI helping to guide the narrative to completion and generating a storyboard image at the end. Use `/storytime --video` to generate an animated video instead.
 
@@ -28,6 +28,7 @@ pnpm install
 1. Go to [api.slack.com/apps](https://api.slack.com/apps) and create a new app
 2. Choose "From scratch" and select your workspace
 3. In **OAuth & Permissions**, add these Bot Token Scopes:
+   - `app_mentions:read`
    - `chat:write`
    - `files:write`
    - `reactions:write`
@@ -39,7 +40,7 @@ pnpm install
 4. In **Event Subscriptions**:
    - Enable events
    - Set Request URL to: `https://your-domain.vercel.app/api/slack/webhook`
-   - Subscribe to `message.channels` workspace event
+   - Subscribe to the `message.channels` and `app_mention` workspace events
 
 5. In **Slash Commands**, create a new command:
    - Command: `/storytime`
@@ -72,6 +73,8 @@ AI_GATEWAY_API_KEY=your_ai_gateway_api_key
 If the selected image or video model fails, the bot posts a notice in the story thread and tries up to two fallback models, defined in `lib/fallback-models.ts`. If every model fails, the bot posts the error in the story thread with a link to the workflow run in the Vercel dashboard. The link uses the team slug and project name from the deployment's [OIDC token](https://vercel.com/docs/oidc/reference). If OIDC is disabled, set `VERCEL_TEAM_SLUG` and `VERCEL_PROJECT_NAME` instead. Without either, the error shows the run ID without a link.
 
 `SLACK_SIGNING_SECRET` is required to verify slash commands, modal submissions, and Events API requests. Set it before configuring or verifying the Slack request URLs. Existing installations must also add this variable when upgrading.
+
+Starting a story by mentioning the bot needs the `app_mentions:read` scope and the `app_mention` event subscription. Existing installations must add both and reinstall the app to the workspace; until then, only the `/storytime` slash command starts stories.
 
 AI Gateway request transcripts are disabled for Slack sessions. The local script can opt in with `pnpm tsx local.ts --transcripts`, after you enable transcripts in your team's AI Gateway settings. Transcripts record prompts, files, and outputs for the session's story and image or video requests, including participants' contributions. This applies to new requests only and does not enable audio transcription.
 
@@ -107,7 +110,7 @@ After deployment, update your Slack app configuration:
 ## How to Use
 
 1. First, invite the bot to your channel: Type `@Storytime Bot` (or whatever you named your app) in the channel and Slack will give you the option to invite it
-2. In any Slack channel where the bot is present, type `/storytime`
+2. In any Slack channel where the bot is present, type `/storytime`. To skip steps 3 and 4 and start a story right away, mention the bot instead — see [Starting a Story by Mention](#starting-a-story-by-mention)
 3. Review the configuration modal. It includes output mode, themes, visual style, models, panel count, video duration, and thinking emoji, with current defaults filled in. Each model menu lists matching [AI Gateway models](https://vercel.com/ai-gateway/models). Type to search, or pick the first option to use exactly what you typed
 4. Click **Start Story** to generate the introduction in the original channel. Canceling the modal does not start a story
 5. Reply in the thread to add your part of the story
@@ -117,11 +120,27 @@ After deployment, update your Slack app configuration:
 
 ![Storyboard Example](./public/storyboard.png)
 
-**Note**: The bot must be invited to a channel before the `/storytime` slash command will work in that channel.
+**Note**: The bot must be invited to a channel before the `/storytime` slash command or an `@Storytime Bot` mention will work in that channel.
+
+### Starting a Story by Mention
+
+Posting a message that mentions the bot in a channel it belongs to starts a story immediately, skipping the configuration modal:
+
+```
+@Storytime Bot
+@Storytime Bot -t Pirates -t Space
+@Storytime Bot --video --style claymation
+```
+
+A mention carries no `trigger_id`, so the modal cannot be opened from one. Instead the mention accepts the same flags as the slash command (see [Command Options](#command-options)) and uses the defaults for everything you leave out. Any other wording in the message is ignored, so `@Storytime Bot let's write something` starts a story with the defaults. Invalid options are reported back to you in a message only you can see, and no story is started.
+
+The story is posted as a new top-level message in the same channel, exactly as the slash command posts it. Mentions inside a thread do not start a story: a thread that belongs to a story already takes replies as contributions to it, and mentioning the bot there would otherwise start a second story in the channel. To run another story alongside an existing one, mention the bot at the top level of the channel again.
 
 ### Command Options
 
 The `/storytime` command supports optional flags to pre-fill the configuration modal. Flags do not skip the modal; click **Start Story** to confirm. Selecting Image or Video shows only that mode's settings. Switching modes preserves entered values, and only the selected mode's settings are validated and used.
+
+The same flags work after an `@Storytime Bot` mention, where they configure the story directly instead of pre-filling the modal.
 
 | Flag               | Alias | Description                                                                                              |
 | ------------------ | ----- | -------------------------------------------------------------------------------------------------------- |
